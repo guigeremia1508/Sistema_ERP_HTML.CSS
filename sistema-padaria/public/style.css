@@ -1,0 +1,152 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+}
+
+body {
+    background-color: #f4f6f9;
+    color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    min-height: 100vh;
+}
+
+.container-inicio, .container-pagina {
+    width: 95%;
+    max-width: 1000px;
+    margin: 30px auto;
+}
+
+.header-inicio { text-align: center; }
+.header-inicio h1 { font-size: 2.2rem; color: #2c3e50; margin-bottom: 10px; }
+.header-inicio p { font-size: 1.1rem; color: #7f8c8d; margin-bottom: 40px; }
+
+.header-pagina {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 25px;
+}
+
+.btn-voltar {
+    text-decoration: none;
+    background: #e74c3c;
+    color: white;
+    padding: 8px 15px;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+.grid-modulos {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 25px;
+}
+
+.card-modulo {
+    background: #ffffff;
+    padding: 30px 20px;
+    border-radius: 12px;
+    text-decoration: none;
+    color: inherit;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    border-top: 5px solid #ccc;
+    text-align: center;
+}
+
+.card-modulo:hover { transform: translateY(-8px); box-shadow: 0 8px 25px rgba(0,0,0,0.12); }
+.card-caixa { border-top-color: #2ecc71; }
+.card-cozinha { border-top-color: #e67e22; }
+.card-gerente { border-top-color: #3498db; }
+.icone { font-size: 3.5rem; margin-bottom: 15px; }
+
+.menu-abas {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.btn-aba {
+    flex: 1;
+    min-width: 140px;
+    padding: 12px;
+    background: #e0e0e0;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-aba:hover { background: #d5d5d5; }
+.btn-aba.ativo { background: #2c3e50; color: white; box-shadow: 0 4px 10px rgba(44, 62, 80, 0.3); }
+
+.aba { display: none; animation: fadeIn 0.3s ease; }
+.aba.ativa { display: block; }
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.card-painel {
+    background: white;
+    padding: 25px;
+    border-radius: 10px;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+}
+
+.card-painel h2 {
+    font-size: 1.3rem;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    border-bottom: 2px solid #ecf0f1;
+    padding-bottom: 8px;
+}
+
+.grupo-input { margin-bottom: 15px; display: flex; flex-direction: column; }
+.grupo-duplo { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+
+label { font-size: 0.85rem; font-weight: bold; color: #555; margin-bottom: 6px; }
+input, select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
+
+.btn-acao {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-weight: bold;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 10px;
+}
+
+.btn-sucesso { background: #2ecc71; }
+.btn-alerta { background: #e67e22; }
+.btn-primario { background: #3498db; }
+
+.etiqueta-box {
+    border: 2px dashed #bdc3c7;
+    padding: 15px;
+    background: #fafafa;
+    border-radius: 8px;
+}
+.margem-topo { margin-top: 20px; }
+.texto-vazio { color: #7f8c8d; text-align: center; font-style: italic; }
+
+th { padding: 8px; border-bottom: 2px solid #ddd; }
+td { padding: 8px; border-bottom: 1px solid #eee; }
+
+/* Nova classe para alinhar a unidade de medida do ingrediente */
+.unidade-display {
+    background: #ecf0f1;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 0.9rem;
+    font-weight: bold;
+}
