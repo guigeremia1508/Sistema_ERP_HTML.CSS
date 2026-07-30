@@ -8,61 +8,29 @@
 body {
     background-color: #f4f6f9;
     color: #333;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-    min-height: 100vh;
 }
 
-.container-inicio, .container-pagina {
-    width: 95%;
-    max-width: 1000px;
-    margin: 30px auto;
+.container-pagina {
+    max-width: 1100px;
+    margin: 20px auto;
+    padding: 0 15px;
 }
-
-.header-inicio { text-align: center; }
-.header-inicio h1 { font-size: 2.2rem; color: #2c3e50; margin-bottom: 10px; }
-.header-inicio p { font-size: 1.1rem; color: #7f8c8d; margin-bottom: 40px; }
 
 .header-pagina {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    margin-bottom: 25px;
+    justify-content: space-between;
+    margin-bottom: 20px;
 }
 
 .btn-voltar {
-    text-decoration: none;
-    background: #e74c3c;
+    background-color: #e74c3c;
     color: white;
+    text-decoration: none;
     padding: 8px 15px;
-    border-radius: 6px;
+    border-radius: 5px;
     font-weight: bold;
 }
-
-.grid-modulos {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 25px;
-}
-
-.card-modulo {
-    background: #ffffff;
-    padding: 30px 20px;
-    border-radius: 12px;
-    text-decoration: none;
-    color: inherit;
-    box-shadow: 0 4px 15px rgba(0,0,0,0.05);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-    border-top: 5px solid #ccc;
-    text-align: center;
-}
-
-.card-modulo:hover { transform: translateY(-8px); box-shadow: 0 8px 25px rgba(0,0,0,0.12); }
-.card-caixa { border-top-color: #2ecc71; }
-.card-cozinha { border-top-color: #e67e22; }
-.card-gerente { border-top-color: #3498db; }
-.icone { font-size: 3.5rem; margin-bottom: 15px; }
 
 .menu-abas {
     display: flex;
@@ -72,81 +40,113 @@ body {
 }
 
 .btn-aba {
-    flex: 1;
-    min-width: 140px;
-    padding: 12px;
-    background: #e0e0e0;
+    padding: 10px 20px;
     border: none;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    font-weight: bold;
-    color: #555;
+    background-color: #e0e0e0;
     cursor: pointer;
-    transition: all 0.3s ease;
+    border-radius: 5px;
+    font-weight: bold;
 }
 
-.btn-aba:hover { background: #d5d5d5; }
-.btn-aba.ativo { background: #2c3e50; color: white; box-shadow: 0 4px 10px rgba(44, 62, 80, 0.3); }
-
-.aba { display: none; animation: fadeIn 0.3s ease; }
-.aba.ativa { display: block; }
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.btn-aba.ativo {
+    background-color: #2c3e50;
+    color: white;
+}
 
 .card-painel {
     background: white;
-    padding: 25px;
-    border-radius: 10px;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
 }
 
-.card-painel h2 {
-    font-size: 1.3rem;
-    color: #2c3e50;
-    margin-bottom: 20px;
-    border-bottom: 2px solid #ecf0f1;
-    padding-bottom: 8px;
+.aba {
+    display: none;
 }
 
-.grupo-input { margin-bottom: 15px; display: flex; flex-direction: column; }
-.grupo-duplo { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+.aba.ativa {
+    display: block;
+}
 
-label { font-size: 0.85rem; font-weight: bold; color: #555; margin-bottom: 6px; }
-input, select { padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-size: 0.95rem; }
+.grupo-input {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 15px;
+}
+
+.grupo-input label {
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.grupo-input input, .grupo-input select {
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+}
+
+.grupo-duplo {
+    display: flex;
+    gap: 15px;
+}
+
+.grupo-duplo .grupo-input {
+    flex: 1;
+}
 
 .btn-acao {
-    width: 100%;
     padding: 12px;
     border: none;
-    border-radius: 6px;
-    color: white;
+    border-radius: 5px;
     font-weight: bold;
-    font-size: 1rem;
     cursor: pointer;
-    margin-top: 10px;
+    width: 100%;
 }
 
-.btn-sucesso { background: #2ecc71; }
-.btn-alerta { background: #e67e22; }
-.btn-primario { background: #3498db; }
+.btn-sucesso { background-color: #2ecc71; color: white; }
+.btn-primario { background-color: #3498db; color: white; }
+.btn-alerta { background-color: #e67e22; color: white; }
 
 .etiqueta-box {
-    border: 2px dashed #bdc3c7;
+    border: 1px solid #ddd;
     padding: 15px;
+    border-radius: 5px;
     background: #fafafa;
-    border-radius: 8px;
 }
-.margem-topo { margin-top: 20px; }
-.texto-vazio { color: #7f8c8d; text-align: center; font-style: italic; }
 
-th { padding: 8px; border-bottom: 2px solid #ddd; }
-td { padding: 8px; border-bottom: 1px solid #eee; }
+.texto-vazio {
+    text-align: center;
+    color: #777;
+}
 
-/* Nova classe para alinhar a unidade de medida do ingrediente */
-.unidade-display {
-    background: #ecf0f1;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
-    font-size: 0.9rem;
-    font-weight: bold;
+/* =================================================== */
+/* CONFIGURAÇÃO UNIVERSAL DE IMPRESSÃO 58MM            */
+/* =================================================== */
+@media print {
+    /* Esconde absolutamente tudo na página */
+    body * {
+        visibility: hidden;
+    }
+    
+    /* Mostra apenas a etiqueta/cupom que tiver a classe 'area-impressao' */
+    #area-impressao, #area-impressao * {
+        visibility: visible;
+    }
+
+    #area-impressao {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 58mm !important; /* Força a largura de 58mm */
+        padding: 2mm;
+        margin: 0;
+        font-family: monospace;
+        color: #000;
+        background: #fff;
+    }
+
+    @page {
+        size: 58mm auto;
+        margin: 0mm;
+    }
 }

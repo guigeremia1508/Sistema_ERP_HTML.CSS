@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Padaria Pão Brioche - Cozinha</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Biblioteca para transformar números em linhas de Código de Barras -->
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
 </head>
 <body>
     <div class="container-pagina">
@@ -117,11 +119,19 @@
 
                     <div class="grupo-duplo">
                         <div class="grupo-input">
-                            <label>Quantidade Rendida (UN/KG):</label>
-                            <input type="number" step="0.01" id="prod-qtd" required>
+                            <label>Quantidade Rendida:</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="number" step="0.01" id="prod-qtd" placeholder="Ex: 10" required style="flex: 2;">
+                                <select id="prod-unidade" style="flex: 1;">
+                                    <option value="UN">UN</option>
+                                    <option value="KG">KG</option>
+                                    <option value="G">G</option>
+                                    <option value="L">L</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="grupo-input">
-                            <label>Preço de Venda Unitário (R$):</label>
+                            <label>Preço de Venda Unitário/KG (R$):</label>
                             <input type="number" step="0.01" id="prod-venda" required>
                         </div>
                     </div>
@@ -139,7 +149,6 @@
                 </form>
             </section>
 
-            <!-- NOVO HTML DA ABA DE ESTOQUE PRONTO -->
             <section id="aba-estoque" class="aba card-painel">
                 <h2>🛒 Estoque de Produtos Prontos</h2>
                 <button class="btn-acao btn-primario" onclick="carregarEstoquePronto()" style="margin-bottom: 15px;">🔄 Atualizar Estoque Pronto</button>
@@ -161,25 +170,61 @@
                 </div>
             </section>
 
+            <!-- ABA PESAGEM E GERADOR DE ETIQUETAS -->
             <section id="aba-pesagem" class="aba card-painel">
-                <h2>⚖️ Pesagem e Fracionamento</h2>
-                <form id="form-pesagem">
+                <h2>⚖️ Pesagem e Fracionamento (Etiquetas)</h2>
+                <form id="form-pesagem" onsubmit="event.preventDefault(); gerarEtiqueta();">
                     <div class="grupo-input">
-                        <label>Selecione o Produto (do Estoque):</label>
-                        <select id="pesagem-produto"><option>Selecione...</option></select>
+                        <label>Selecione o Produto (do Estoque Pronto):</label>
+                        <select id="pesagem-produto" onchange="atualizarUnidadePesagem()"><option value="">Selecione...</option></select>
                     </div>
                     <div class="grupo-duplo">
                         <div class="grupo-input">
-                            <label>Peso (KG) ou Quantidade:</label>
-                            <input type="number" step="0.001" id="pesagem-qtd" required>
+                            <label>Quantidade ou Peso Digitado:</label>
+                            <div style="display: flex; gap: 10px;">
+                                <input type="number" step="0.001" id="pesagem-qtd" required placeholder="Ex: 0.450" style="flex: 2;">
+                                <select id="pesagem-medida" style="flex: 1;" onchange="atualizarCalculoPesagem()">
+                                    <option value="KG">KG</option>
+                                    <option value="UN">UN</option>
+                                    <option value="G">G</option>
+                                </select>
+                            </div>
                         </div>
                         <div class="grupo-input">
-                            <label>Valor Calculado (R$):</label>
-                            <input type="text" id="pesagem-valor" readonly placeholder="Cálculo Automático">
+                            <label>Valor Calculado Total (R$):</label>
+                            <input type="text" id="pesagem-valor" readonly placeholder="R$ 0.00" style="font-weight: bold; font-size: 1.1rem; color: #27ae60;">
                         </div>
                     </div>
-                    <button type="button" class="btn-acao btn-primario">Gerar Código de Barras</button>
+                    <button type="submit" class="btn-acao btn-primario">🏷️ Gerar Código de Barras & Etiqueta</button>
                 </form>
+
+                <!-- AREA DA ETIQUETA GERADA -->
+                <div id="container-etiqueta" style="display: none; margin-top: 25px; text-align: center;">
+                    <h3>Pré-visualização da Etiqueta:</h3>
+                    
+                    <div id="area-impressao" style="border: 2px dashed #333; width: 250px; margin: 15px auto; padding: 10px; background: #fff; text-align: center; font-family: monospace;">
+                        <h4 style="margin-bottom: 3px; font-size: 1.1rem;">PADARIA PÃO BRIOCHE</h4>
+                        <p style="font-size: 0.85rem; border-bottom: 1px solid #000; padding-bottom: 4px;" id="etq-nome-prod">NOME DO PRODUTO</p>
+                        
+                        <div style="display: flex; justify-content: space-between; margin: 6px 0; font-size: 0.8rem;">
+                            <span>QTD: <strong id="etq-qtd">0.000</strong></span>
+                            <span>VALOR/KG: <strong id="etq-unit">R$0.00</strong></span>
+                        </div>
+
+                        <div style="font-size: 1.2rem; font-weight: bold; margin: 4px 0;">
+                            TOTAL: R$ <span id="etq-total">0.00</span>
+                        </div>
+
+                        <div style="font-size: 0.75rem; color: #444; margin-bottom: 5px;">
+                            Validade: <span id="etq-val">--/--/----</span>
+                        </div>
+
+                        <!-- O Código de Barras Visual Desenhado em Linhas -->
+                        <svg id="codigo-barras-svg" style="max-width: 100%; height: 50px;"></svg>
+                    </div>
+
+                    <button class="btn-acao btn-sucesso" style="width: auto; padding: 10px 25px;" onclick="imprimirEtiqueta58mm()">𖦹 Imprimir na Impressora 58mm</button>
+                </div>
             </section>
 
         </main>

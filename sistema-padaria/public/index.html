@@ -3,38 +3,75 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sistema Padaria - Início</title>
+    <title>Sistema Padaria Pão Brioche</title>
+    <!-- AQUI ESTÁ O LINK QUE PUXA O CSS! -->
     <link rel="stylesheet" href="style.css">
+    
+    <!-- Um pouquinho de CSS extra só para deixar os botões do menu inicial bem bonitos -->
+    <style>
+        .menu-inicial {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-top: 40px;
+            flex-wrap: wrap;
+        }
+        .cartao-modulo {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+            text-align: center;
+            text-decoration: none;
+            color: #333;
+            width: 250px;
+            transition: transform 0.2s, border-color 0.2s;
+            border: 2px solid transparent;
+        }
+        .cartao-modulo:hover {
+            transform: translateY(-5px);
+            border-color: #3498db;
+        }
+        .cartao-modulo h2 {
+            margin: 15px 0 10px 0;
+            color: #2c3e50;
+        }
+        .cartao-modulo p {
+            font-size: 0.9rem;
+            color: #7f8c8d;
+        }
+        .icone-grande {
+            font-size: 3.5rem;
+        }
+    </style>
 </head>
 <body>
-    <div class="container-inicio">
-        <header class="header-inicio">
-            <h1>🥖 Sistema Padaria Pão brioche 🥖</h1>
-            <p>Selecione o módulo que deseja acessar:</p>
-        </header>
+    <div class="container-pagina" style="text-align: center; margin-top: 50px;">
+        <h1 style="font-size: 2.5rem; color: #2c3e50;">🥖 Sistema Padaria Pão Brioche 🥖</h1>
+        <p style="font-size: 1.2rem; color: #555; margin-top: 10px;">Selecione o módulo que deseja acessar:</p>
 
-        <main class="grid-modulos">
-            <!-- Card Caixa -->
-            <a href="caixa.html" class="card-modulo card-caixa">
-                <div class="icone">🛒</div>
+        <div class="menu-inicial">
+            <!-- Link para o Caixa -->
+            <a href="caixa.html" class="cartao-modulo">
+                <div class="icone-grande">🛒</div>
                 <h2>Caixa / PDV</h2>
                 <p>Passar vendas, emitir notas e registrar pagamentos.</p>
             </a>
 
-            <!-- Card Cozinha -->
-            <a href="cozinha.html" class="card-modulo card-cozinha">
-                <div class="icone">👨‍🍳</div>
+            <!-- Link para a Cozinha -->
+            <a href="cozinha.html" class="cartao-modulo">
+                <div class="icone-grande">👨‍🍳</div>
                 <h2>Cozinha / Produção</h2>
                 <p>Entrada de matéria-prima, receitas e geração de etiquetas.</p>
             </a>
 
-            <!-- Card Gerente -->
-            <a href="gerente.html" class="card-modulo card-gerente">
-                <div class="icone">📊</div>
+            <!-- Link para o Gerente -->
+            <a href="#" class="cartao-modulo">
+                <div class="icone-grande">📊</div>
                 <h2>Gerente / Dashboard</h2>
                 <p>Relatórios, fluxo de caixa, estoque e cálculo de lucros.</p>
             </a>
-        </main>
+        </div>
     </div>
 </body>
 </html>

@@ -42,7 +42,7 @@ function criarTabelas() {
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             codigo_barras TEXT UNIQUE NOT NULL,
             nome TEXT NOT NULL,
-            quantidade INTEGER NOT NULL,
+            quantidade TEXT NOT NULL,
             preco_custo REAL NOT NULL,
             preco_venda REAL NOT NULL,
             data_fabricacao TEXT,
@@ -93,7 +93,6 @@ app.get('/api/receitas', (req, res) => {
     });
 });
 
-// NOVA: Cadastrar Produto Pronto (Produção)
 app.post('/api/produtos', (req, res) => {
     const { codigo_barras, nome, quantidade, preco_custo, preco_venda, data_fabricacao, data_validade } = req.body;
     const query = `INSERT INTO produtos (codigo_barras, nome, quantidade, preco_custo, preco_venda, data_fabricacao, data_validade) VALUES (?, ?, ?, ?, ?, ?, ?)`;
@@ -104,13 +103,47 @@ app.post('/api/produtos', (req, res) => {
     });
 });
 
-// NOVA: Buscar Estoque de Produtos Prontos
 app.get('/api/produtos', (req, res) => {
     db.all(`SELECT * FROM produtos ORDER BY id DESC`, [], (err, rows) => {
         if (err) return res.status(500).json({ erro: err.message });
         res.json(rows);
     });
 });
+
+
+// =========================================================
+// SISTEMA DA MAQUININHA DE CARTÃO / PIX (CELULAR)
+// =========================================================
+let estadoMaquininha = { status: 'livre', metodo: '', valor: 0 };
+
+// Celular e Caixa consultam o status o tempo todo
+app.get('/api/maquininha/status', (req, res) => {
+    res.json(estadoMaquininha);
+});
+
+// O Caixa envia o comando para a maquininha ligar
+app.post('/api/maquininha/iniciar', express.json(), (req, res) => {
+    estadoMaquininha = { 
+        status: 'aguardando', 
+        metodo: req.body.metodo, 
+        valor: req.body.valor 
+    };
+    res.json({ success: true });
+});
+
+// O Celular avisa que o cliente clicou na tela e pagou
+app.post('/api/maquininha/pagar', (req, res) => {
+    estadoMaquininha.status = 'aprovado';
+    res.json({ success: true });
+});
+
+// O Caixa reseta a maquininha para "Caixa Livre"
+app.post('/api/maquininha/reset', (req, res) => {
+    estadoMaquininha = { status: 'livre', metodo: '', valor: 0 };
+    res.json({ success: true });
+});
+
+// =========================================================
 
 app.listen(PORT, () => {
     console.log(`==================================================`);

@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Maquininha</title>
+    <style>
+        body {
+            margin: 0; padding: 0; background-color: #111; color: white;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex; flex-direction: column; justify-content: center; align-items: center;
+            height: 100vh; overflow: hidden; text-align: center; cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        
+        .container { display: flex; flex-direction: column; align-items: center; gap: 20px; padding: 20px; }
+        
+        h1 { font-size: 2rem; margin: 0; color: #fff; }
+        h2 { font-size: 1.5rem; color: #aaa; margin: 0; font-weight: normal; }
+        .valor { font-size: 3.5rem; font-weight: bold; color: #2ecc71; margin: 10px 0; }
+        
+        .qr-code {
+            width: 200px; height: 200px; background: white; padding: 10px; border-radius: 10px;
+            display: flex; justify-content: center; align-items: center; color: black;
+            font-weight: bold; border: 4px solid #2ecc71;
+        }
+
+        .instrucao {
+            font-size: 1.2rem; color: #f1c40f; animation: piscar 1.5s infinite; margin-top: 20px;
+        }
+
+        /* Telas de Status */
+        #tela-livre { display: flex; color: #7f8c8d; }
+        #tela-pagamento, #tela-aprovado { display: none; }
+
+        .check-icon { font-size: 5rem; color: #2ecc71; }
+
+        @keyframes piscar { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    </style>
+</head>
+<body onclick="simularPagamento()">
+
+    <!-- STATUS 1: CAIXA LIVRE -->
+    <div id="tela-livre" class="container">
+        <h1 style="color: #7f8c8d;">Pão Brioche</h1>
+        <h2>Caixa Livre</h2>
+    </div>
+
+    <!-- STATUS 2: AGUARDANDO PAGAMENTO -->
+    <div id="tela-pagamento" class="container">
+        <h1 id="titulo-metodo">APROXIME OU INSIRA</h1>
+        <div class="valor" id="display-valor">R$ 0,00</div>
+        
+        <div id="box-qr-code" class="qr-code" style="display: none;">
+            <!-- QR Code Falso Ilustrativo -->
+            <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=PagamentoPadariaTeste" alt="QR Code PIX">
+        </div>
+
+        <div class="instrucao">Toque na tela para pagar</div>
+    </div>
+
+    <!-- STATUS 3: APROVADO -->
+    <div id="tela-aprovado" class="container">
+        <div class="check-icon">✅</div>
+        <h1 style="color: #2ecc71; font-size: 2.5rem;">APROVADO</h1>
+        <h2>Retire seu recibo</h2>
+    </div>
+
+    <script>
+        let statusAtual = 'livre';
+
+        // Verifica o que o computador mandou a cada 1 segundo
+        setInterval(async () => {
+            try {
+                const res = await fetch('/api/maquininha/status');
+                const dados = await res.json();
+                
+                if (dados.status !== statusAtual) {
+                    statusAtual = dados.status;
+                    atualizarTela(dados);
+                }
+            } catch (e) { console.log("Erro ao checar status."); }
+        }, 1000);
+
+        function atualizarTela(dados) {
+            document.getElementById('tela-livre').style.display = 'none';
+            document.getElementById('tela-pagamento').style.display = 'none';
+            document.getElementById('tela-aprovado').style.display = 'none';
+            document.body.style.backgroundColor = '#111';
+
+            if (dados.status === 'livre') {
+                document.getElementById('tela-livre').style.display = 'flex';
+            } 
+            else if (dados.status === 'aguardando') {
+                document.getElementById('tela-pagamento').style.display = 'flex';
+                document.getElementById('display-valor').textContent = `R$ ${dados.valor.toFixed(2).replace('.', ',')}`;
+                
+                if (dados.metodo === 'pix') {
+                    document.getElementById('titulo-metodo').textContent = 'PIX - ESCANEIE O QR CODE';
+                    document.getElementById('box-qr-code').style.display = 'flex';
+                } else {
+                    document.getElementById('titulo-metodo').textContent = 'APROXIME, INSIRA OU PASSE';
+                    document.getElementById('box-qr-code').style.display = 'none';
+                }
+            }
+            else if (dados.status === 'aprovado') {
+                document.body.style.backgroundColor = '#002611'; // Fundo verde escuro no sucesso
+                document.getElementById('tela-aprovado').style.display = 'flex';
+            }
+        }
+
+        // Função chamada ao clicar/tocar na tela do celular
+        async function simularPagamento() {
+            if (statusAtual === 'aguardando') {
+                await fetch('/api/maquininha/pagar', { method: 'POST' });
+                // Ao pagar, o sistema atualiza via setInterval automaticamente
+            }
+        }
+    </script>
+</body>
+</html>
