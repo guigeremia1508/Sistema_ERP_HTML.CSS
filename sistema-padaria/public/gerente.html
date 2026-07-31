@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel do Gerente - Padaria</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { display: flex; height: 100vh; background-color: #f4f6f9; }
+        
+        /* Menu Lateral */
+        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; padding: 20px 0; }
+        .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.5rem; border-bottom: 1px solid #34495e; padding-bottom: 15px; }
+        .menu-btn { background: none; border: none; color: #ecf0f1; padding: 15px 20px; text-align: left; font-size: 1.1rem; cursor: pointer; transition: 0.3s; width: 100%; display: block; }
+        .menu-btn:hover, .menu-btn.ativo { background-color: #34495e; border-left: 4px solid #e74c3c; }
+        
+        /* Área Principal */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; }
+        .secao { display: none; }
+        .secao.ativo { display: block; }
+        h1 { color: #2c3e50; margin-bottom: 20px; }
+        
+        /* Cards e Tabelas */
+        .cards-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 5px solid #3498db; }
+        .card h3 { font-size: 1rem; color: #7f8c8d; margin-bottom: 10px; }
+        .card .valor { font-size: 1.8rem; font-weight: bold; color: #2c3e50; }
+        
+        .botoes-extras { display: flex; gap: 15px; margin-bottom: 30px; }
+        .btn-acao { padding: 15px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold; color: white; }
+        .btn-pedidos { background-color: #e67e22; }
+        .btn-repositor { background-color: #27ae60; }
+        .btn-azul { background-color: #3498db; }
+        .btn-vermelho { background-color: #e74c3c; }
+        .btn-verde { background-color: #2ecc71; }
+
+        table { width: 100%; border-collapse: collapse; background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-top: 20px; }
+        th, td { padding: 15px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #2c3e50; color: white; position: sticky; top: 0; }
+        tr:hover { background-color: #f1f1f1; }
+        .estoque-baixo { background-color: #ffcccc !important; color: #900; font-weight: bold; }
+        
+        .btn-pequeno { padding: 8px 12px; border: none; border-radius: 4px; cursor: pointer; color: white; font-weight: bold; margin-right: 5px; }
+        .btn-editar { background-color: #f39c12; }
+        .btn-excluir { background-color: #e74c3c; }
+
+        .form-grupo { margin-bottom: 15px; }
+        .form-grupo input, .form-grupo select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
+    </style>
+</head>
+<body>
+
+    <!-- Menu Lateral -->
+    <div class="sidebar">
+        <h2>👨‍💼 Gestão Padaria</h2>
+        <a href="index.html" class="menu-btn" style="background-color: #c0392b; color: white; text-align: center; text-decoration: none; margin-bottom: 20px; font-weight: bold;">🔙 Voltar ao Início</a>
+        <button class="menu-btn ativo" onclick="mudarSecao('dashboard')">📊 Dashboard</button>
+        <button class="menu-btn" onclick="mudarSecao('estoque')">📦 Estoque</button>
+        <button class="menu-btn" onclick="mudarSecao('financeiro')">💰 Financeiro (DRE)</button>
+        <button class="menu-btn" onclick="mudarSecao('caixa')">⚙️ Controle de Caixa</button>
+        <button class="menu-btn" onclick="mudarSecao('rh')">🧑‍🤝‍🧑 Recursos Humanos</button>
+    </div>
+
+    <!-- Conteúdo Principal -->
+    <div class="main-content">
+        
+        <!-- DASHBOARD -->
+        <div id="dashboard" class="secao ativo">
+            <h1>Visão Geral do Dia</h1>
+            <div class="botoes-extras">
+                <button class="btn-acao btn-pedidos">📋 Tela de Pedidos</button>
+                <button class="btn-acao btn-repositor">🛒 Tela de Repositor</button>
+            </div>
+            <div class="cards-grid">
+                <div class="card" style="border-left-color: #2ecc71;">
+                    <h3>Faturamento (Hoje)</h3>
+                    <div class="valor" id="dash-faturamento">R$ 0,00</div>
+                </div>
+                <div class="card" style="border-left-color: #3498db;">
+                    <h3>Total de Vendas</h3>
+                    <div class="valor" id="dash-vendas">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- ESTOQUE -->
+        <div id="estoque" class="secao">
+            <h1>Gestão de Produtos e Estoque</h1>
+            <table>
+                <thead>
+                    <tr><th>Cód. Barras</th><th>Nome do Produto</th><th>Qtd. Atual</th><th>Custo (R$)</th><th>Venda (R$)</th><th>Ações</th></tr>
+                </thead>
+                <tbody id="tabela-estoque"></tbody>
+            </table>
+        </div>
+
+        <!-- FINANCEIRO -->
+        <div id="financeiro" class="secao">
+            <h1>Gestão Financeira e Extrato (DRE)</h1>
+            <div class="cards-grid">
+                <div class="card" style="border-left-color: #2ecc71;">
+                    <h3>(+) Entradas Totais Vendas</h3>
+                    <div class="valor" id="dre-entradas" style="color: #2ecc71;">R$ 0,00</div>
+                </div>
+                <div class="card" style="border-left-color: #e74c3c;">
+                    <h3>(-) Saídas e Despesas</h3>
+                    <div class="valor" id="dre-saidas" style="color: #e74c3c;">R$ 0,00</div>
+                </div>
+                <div class="card" id="card-saldo" style="border-left-color: #3498db;">
+                    <h3>(=) Saldo Líquido</h3>
+                    <div class="valor" id="dre-saldo">R$ 0,00</div>
+                </div>
+            </div>
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-top: 20px;">
+                <h3>🛒 Histórico Completo de Vendas (Dinheiro, Cartão, Pix)</h3>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table style="margin-top: 10px;">
+                        <thead><tr><th>ID / Cupom</th><th>Data / Hora</th><th>Forma de Pagamento</th><th>Valor Total</th></tr></thead>
+                        <tbody id="tabela-vendas-hist"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- CAIXA -->
+        <div id="caixa" class="secao">
+            <h1>Controle Operacional de Caixa (Gaveta)</h1>
+            <div class="cards-grid">
+                <div class="card" style="border-left-color: #f39c12;">
+                    <h3>💵 Dinheiro Físico Esperado na Gaveta</h3>
+                    <div class="valor" id="caixa-dinheiro-gaveta" style="color: #f39c12; margin-top: 10px;">R$ 0,00</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                    <h3>⚙️ Movimentar Gaveta</h3><br>
+                    <div class="form-grupo">
+                        <label>Tipo de Movimento:</label>
+                        <select id="tipo-movimento"><option value="Suprimento">Suprimento (Entrada / Troco)</option><option value="Sangria">Sangria (Retirada)</option></select>
+                    </div>
+                    <div class="form-grupo"><label>Motivo:</label><input type="text" id="motivo-movimento" placeholder="Ex: Troco inicial"></div>
+                    <div class="form-grupo"><label>Valor (R$):</label><input type="number" id="valor-movimento" placeholder="0.00" step="0.01"></div>
+                    <button class="btn-acao btn-azul" style="width: 100%;" onclick="registrarMovimento()">Confirmar</button>
+                </div>
+                <div style="flex: 1.5; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                    <h3>📋 Histórico de Sangrias e Suprimentos</h3>
+                    <div style="max-height: 250px; overflow-y: auto;">
+                        <table style="margin-top: 10px;">
+                            <thead><tr><th>Tipo</th><th>Motivo</th><th>Data</th><th>Valor</th></tr></thead>
+                            <tbody id="tabela-fluxo-caixa"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- SEÇÃO: RH (ATUALIZADA) -->
+        <div id="rh" class="secao">
+            <h1>🧑‍🤝‍🧑 Recursos Humanos (RH)</h1>
+            
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                
+                <!-- Cadastro de Funcionários -->
+                <div style="flex: 1; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                    <h3>➕ Cadastrar Novo Funcionário</h3><br>
+                    
+                    <div class="form-grupo">
+                        <label>Nome Completo:</label>
+                        <input type="text" id="rh-nome" placeholder="Ex: João Silva">
+                    </div>
+                    
+                    <div class="form-grupo">
+                        <label>Cargo:</label>
+                        <select id="rh-cargo">
+                            <option value="Cozinha">Cozinha</option>
+                            <option value="Repositor">Repositor</option>
+                            <option value="Caixa">Caixa</option>
+                            <option value="Gerente">Gerente</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-grupo">
+                        <label>Salário Mensal (R$):</label>
+                        <input type="number" id="rh-salario" placeholder="Ex: 1500.00" step="0.01">
+                    </div>
+                    
+                    <div class="form-grupo">
+                        <label>Carga Horária por Dia (Horas):</label>
+                        <input type="number" id="rh-carga-horaria" placeholder="Ex: 8" step="1">
+                    </div>
+
+                    <div class="form-grupo">
+                        <label>Senha do Sistema:</label>
+                        <input type="password" id="rh-senha" placeholder="Para bater ponto">
+                    </div>
+                    
+                    <button class="btn-acao btn-verde" style="width: 100%; margin-top: 10px;" onclick="cadastrarFuncionario()">Salvar Funcionário</button>
+                </div>
+
+                <!-- Tabela de Funcionários -->
+                <div style="flex: 2; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                    <h3>📋 Quadro de Funcionários Atual</h3>
+                    <div style="max-height: 400px; overflow-y: auto;">
+                        <table style="margin-top: 10px;">
+                            <thead><tr><th>Nome</th><th>Cargo</th><th>Salário Mensal</th><th>Carga (Dia)</th><th>Status</th></tr></thead>
+                            <tbody id="tabela-funcionarios"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Relatório de Ponto -->
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); margin-top: 20px;">
+                <h3>⏰ Relatório Geral de Ponto (Horas Trabalhadas)</h3>
+                <div style="max-height: 300px; overflow-y: auto;">
+                    <table style="margin-top: 10px;">
+                        <thead><tr><th>Funcionário</th><th>Entrada</th><th>Saída</th><th>Horas (Total)</th><th>Custo Aproximado (R$)</th></tr></thead>
+                        <tbody id="tabela-ponto"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        function mudarSecao(idSecao) {
+            document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativo'));
+            document.getElementById(idSecao).classList.add('ativo');
+            
+            document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('ativo'));
+            event.currentTarget.classList.add('ativo');
+
+            if(idSecao === 'estoque') carregarEstoque();
+            if(idSecao === 'financeiro') carregarFinanceiro(); 
+            if(idSecao === 'caixa') carregarCaixa();
+            if(idSecao === 'rh') carregarRH(); 
+        }
+
+        // --- ESTOQUE, FINANCEIRO E CAIXA ---
+        async function carregarEstoque() {
+            const res = await fetch('http://localhost:3000/api/produtos'); const produtos = await res.json();
+            const tabela = document.getElementById('tabela-estoque'); tabela.innerHTML = '';
+            produtos.forEach(prod => {
+                const classe = parseFloat(prod.quantidade) <= 5 ? 'estoque-baixo' : '';
+                tabela.innerHTML += `<tr class="${classe}"><td>${prod.codigo_barras}</td><td><strong>${prod.nome}</strong></td><td>${prod.quantidade}</td><td>R$ ${prod.preco_custo.toFixed(2)}</td><td>R$ ${prod.preco_venda.toFixed(2)}</td><td><button class="btn-pequeno btn-editar" onclick="editarProduto(${prod.id}, '${prod.nome}', '${prod.quantidade}', ${prod.preco_venda})">✏️ Editar</button><button class="btn-pequeno btn-excluir" onclick="excluirProduto(${prod.id})">🗑️ Excluir</button></td></tr>`;
+            });
+        }
+        async function excluirProduto(id) { if(confirm("Excluir?")) { await fetch(`http://localhost:3000/api/produtos/${id}`, { method: 'DELETE' }); carregarEstoque(); } }
+        async function editarProduto(id, nome, qtd, preco) {
+            const novaQtd = prompt(`Qtd de "${nome}":`, qtd); if(!novaQtd) return;
+            const novoPreco = prompt(`Preço de "${nome}":`, preco.toFixed(2)); if(!novoPreco) return;
+            const v = parseFloat(novoPreco.replace(',','.')); if(isNaN(v)) return;
+            await fetch(`http://localhost:3000/api/produtos/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({quantidade:novaQtd, preco_venda:v}) }); carregarEstoque();
+        }
+
+        async function carregarFinanceiro() {
+            const resVendas = await fetch('http://localhost:3000/api/vendas'); const vendas = await resVendas.json();
+            const resDesp = await fetch('http://localhost:3000/api/despesas'); const despesas = await resDesp.json();
+            let ent = 0, sai = 0;
+            const tbVendas = document.getElementById('tabela-vendas-hist'); tbVendas.innerHTML = '';
+            vendas.forEach(v => { ent += v.total_venda; tbVendas.innerHTML += `<tr><td>#00${v.id}</td><td>${new Date(v.data_hora).toLocaleString()}</td><td>${v.forma_pagamento}</td><td style="color: green;">R$ ${v.total_venda.toFixed(2)}</td></tr>`; });
+            despesas.forEach(d => sai += d.valor);
+            document.getElementById('dre-entradas').innerText = `R$ ${ent.toFixed(2)}`;
+            document.getElementById('dre-saidas').innerText = `R$ ${sai.toFixed(2)}`;
+            const saldo = ent - sai;
+            document.getElementById('dre-saldo').innerText = `R$ ${saldo.toFixed(2)}`;
+            document.getElementById('dre-saldo').style.color = saldo < 0 ? '#e74c3c' : '#3498db';
+        }
+
+        async function carregarCaixa() {
+            const resVendas = await fetch('http://localhost:3000/api/vendas'); const vendas = await resVendas.json();
+            const resFluxo = await fetch('http://localhost:3000/api/fluxo-caixa'); const fluxo = await resFluxo.json();
+            let saldoGaveta = 0;
+            vendas.forEach(v => { if (v.forma_pagamento === 'Dinheiro') saldoGaveta += v.total_venda; });
+            const tabelaFluxo = document.getElementById('tabela-fluxo-caixa'); tabelaFluxo.innerHTML = '';
+            fluxo.forEach(mov => {
+                if (mov.tipo === 'Suprimento') saldoGaveta += mov.valor;
+                else if (mov.tipo === 'Sangria') saldoGaveta -= mov.valor;
+                let cor = mov.tipo === 'Suprimento' ? '#2ecc71' : '#e74c3c';
+                let ic = mov.tipo === 'Suprimento' ? '📥' : '📤';
+                tabelaFluxo.innerHTML += `<tr><td><strong>${ic} ${mov.tipo}</strong></td><td>${mov.motivo}</td><td>${new Date(mov.data_registro).toLocaleString('pt-BR')}</td><td style="color: ${cor};">R$ ${mov.valor.toFixed(2)}</td></tr>`;
+            });
+            document.getElementById('caixa-dinheiro-gaveta').innerText = `R$ ${saldoGaveta.toFixed(2)}`;
+        }
+
+        async function registrarMovimento() {
+            const tipo = document.getElementById('tipo-movimento').value, motivo = document.getElementById('motivo-movimento').value, valor = parseFloat(document.getElementById('valor-movimento').value);
+            if (!motivo || isNaN(valor) || valor <= 0) return alert("Preencha corretamente!");
+            await fetch('http://localhost:3000/api/fluxo-caixa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo, motivo, valor }) });
+            document.getElementById('motivo-movimento').value = ''; document.getElementById('valor-movimento').value = ''; carregarCaixa();
+        }
+
+        // ==========================================
+        // FUNÇÕES DO RH (ATUALIZADAS)
+        // ==========================================
+        function carregarRH() {
+            buscarFuncionarios();
+            buscarRelatorioPonto();
+        }
+
+        async function cadastrarFuncionario() {
+            const nome = document.getElementById('rh-nome').value;
+            const cargo = document.getElementById('rh-cargo').value;
+            const salario_mensal = parseFloat(document.getElementById('rh-salario').value);
+            const carga_horaria_diaria = parseFloat(document.getElementById('rh-carga-horaria').value);
+            const senha = document.getElementById('rh-senha').value;
+
+            if (!nome || isNaN(salario_mensal) || isNaN(carga_horaria_diaria) || !senha) {
+                alert("Por favor, preencha todos os campos corretamente.");
+                return;
+            }
+
+            const res = await fetch('http://localhost:3000/api/funcionarios', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ nome, cargo, salario_mensal, carga_horaria_diaria, senha })
+            });
+
+            if (res.ok) {
+                alert("Funcionário cadastrado com sucesso!");
+                document.getElementById('rh-nome').value = '';
+                document.getElementById('rh-salario').value = '';
+                document.getElementById('rh-carga-horaria').value = '';
+                document.getElementById('rh-senha').value = '';
+                buscarFuncionarios();
+            } else {
+                alert("Erro ao cadastrar funcionário.");
+            }
+        }
+
+        async function buscarFuncionarios() {
+            const res = await fetch('http://localhost:3000/api/funcionarios');
+            const funcionarios = await res.json();
+            const tabela = document.getElementById('tabela-funcionarios');
+            tabela.innerHTML = '';
+
+            funcionarios.forEach(f => {
+                const statusStr = f.ativo ? '<span style="color: green; font-weight:bold;">Ativo</span>' : '<span style="color: red; font-weight:bold;">Inativo</span>';
+                
+                tabela.innerHTML += `
+                    <tr>
+                        <td><strong>${f.nome}</strong></td>
+                        <td>${f.cargo}</td>
+                        <td style="color: #2c3e50; font-weight: bold;">R$ ${f.salario_mensal.toFixed(2)}</td>
+                        <td>${f.carga_horaria_diaria} horas</td>
+                        <td>${statusStr}</td>
+                    </tr>
+                `;
+            });
+        }
+
+        async function buscarRelatorioPonto() {
+            const res = await fetch('http://localhost:3000/api/ponto');
+            const ponto = await res.json();
+            const tabela = document.getElementById('tabela-ponto');
+            tabela.innerHTML = '';
+
+            if(ponto.length === 0) {
+                tabela.innerHTML = `<tr><td colspan="5" style="text-align:center;">Nenhum ponto registrado ainda.</td></tr>`;
+                return;
+            }
+
+            ponto.forEach(p => {
+                const entradaStr = p.entrada ? new Date(p.entrada).toLocaleString('pt-BR') : '---';
+                const saidaStr = p.saida ? new Date(p.saida).toLocaleString('pt-BR') : 'Trabalhando...';
+                const horasStr = p.horas_trabalhadas ? p.horas_trabalhadas.toFixed(2) + 'h' : '---';
+                const valorStr = p.valor_gerado ? `R$ ${p.valor_gerado.toFixed(2)}` : '---';
+
+                tabela.innerHTML += `
+                    <tr>
+                        <td><strong>${p.nome}</strong></td>
+                        <td>${entradaStr}</td>
+                        <td>${saidaStr}</td>
+                        <td>${horasStr}</td>
+                        <td style="color: #e74c3c; font-weight: bold;">${valorStr}</td>
+                    </tr>
+                `;
+            });
+        }
+    </script>
+</body>
+</html>
