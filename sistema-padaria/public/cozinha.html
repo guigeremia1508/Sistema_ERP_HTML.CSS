@@ -16,8 +16,7 @@
         </header>
 
         <nav class="menu-abas">
-            <button class="btn-aba ativo" onclick="abrirAba(event, 'aba-insumos')">📦 Insumos</button>
-            <button class="btn-aba" onclick="abrirAba(event, 'aba-estoque-insumos')">📋 Estoque Matéria-Prima</button>
+            <button class="btn-aba ativo" onclick="abrirAba(event, 'aba-estoque-insumos')">📋 Estoque Matéria-Prima</button>
             <button class="btn-aba" onclick="abrirAba(event, 'aba-receitas')">📝 Receitas</button>
             <button class="btn-aba" onclick="abrirAba(event, 'aba-producao')">👨‍🍳 Produção</button>
             <button class="btn-aba" onclick="abrirAba(event, 'aba-estoque')">🛒 Estoque Pronto</button>
@@ -26,37 +25,7 @@
 
         <main class="conteudo-abas">
             
-            <section id="aba-insumos" class="aba ativa card-painel">
-                <h2>📦 Cadastrar Matéria-Prima / Embalagem</h2>
-                <form id="form-insumo">
-                    <div class="grupo-input">
-                        <label>Nome do Item (Ingrediente ou Embalagem):</label>
-                        <input type="text" id="insumo-nome" placeholder="Ex: Farinha de Trigo" required>
-                    </div>
-                    <div class="grupo-duplo">
-                        <div class="grupo-input">
-                            <label>Quantidade Comprada:</label>
-                            <input type="number" step="0.01" id="insumo-qtd" placeholder="Ex: 50" required>
-                        </div>
-                        <div class="grupo-input">
-                            <label>Unidade de Medida:</label>
-                            <select id="insumo-unidade">
-                                <option value="KG">Quilos (KG)</option>
-                                <option value="G">Gramas (G)</option>
-                                <option value="L">Litros (L)</option>
-                                <option value="UN">Unidades (UN)</option>
-                            </select>
-                        </div>
-                    </div>
-                    <div class="grupo-input">
-                        <label>Valor Total Pago (R$):</label>
-                        <input type="number" step="0.01" id="insumo-custo" placeholder="Ex: 150.00" required>
-                    </div>
-                    <button type="submit" class="btn-acao btn-sucesso">Salvar no Estoque de Insumos</button>
-                </form>
-            </section>
-
-            <section id="aba-estoque-insumos" class="aba card-painel">
+            <section id="aba-estoque-insumos" class="aba ativa card-painel">
                 <h2>📋 Estoque Atual de Matéria-Prima</h2>
                 <button class="btn-acao btn-primario" onclick="carregarEstoqueInsumos()" style="margin-bottom: 15px;">🔄 Atualizar Estoque</button>
                 <div class="etiqueta-box">

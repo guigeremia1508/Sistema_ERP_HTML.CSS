@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tela de Pedidos - Pão Brioche</title>
+    <style>
+        /* Estilos básicos para manter a tela limpa e organizada */
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+        }
+
+        .cabecalho {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 10px;
+        }
+
+        .titulo-container {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .cabecalho h1 {
+            margin: 0;
+            color: #2c3e50;
+        }
+
+        /* Botão de Voltar ao Início */
+        .btn-voltar {
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: background 0.3s;
+        }
+
+        .btn-voltar:hover {
+            background-color: #c0392b;
+        }
+
+        /* Botão de Atualizar */
+        .btn-atualizar {
+            padding: 10px 20px; 
+            cursor: pointer; 
+            background: #3498db; 
+            color: #fff; 
+            border: none; 
+            border-radius: 4px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .btn-atualizar:hover {
+            background: #2980b9;
+        }
+
+        /* Grid que organiza os pedidos lado a lado */
+        .grid-pedidos {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        /* O visual de cada cartão de pedido */
+        .cartao-pedido {
+            background: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            padding: 20px;
+            border-top: 5px solid #e67e22; /* Cor laranja de destaque */
+            display: flex;
+            flex-direction: column;
+        }
+
+        .numero-pedido {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #e67e22;
+            margin-bottom: 15px;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 10px;
+        }
+
+        .info-pedido {
+            margin: 5px 0;
+            font-size: 0.95em;
+            color: #34495e;
+        }
+
+        .info-pedido strong {
+            color: #2c3e50;
+        }
+
+        .lista-itens {
+            margin: 15px 0;
+            padding-left: 20px;
+            background: #f8f9fa;
+            padding: 10px 10px 10px 30px;
+            border-radius: 4px;
+        }
+
+        .lista-itens li {
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        /* Botão para dar baixa no pedido */
+        .btn-concluir {
+            margin-top: auto;
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px;
+            border-radius: 4px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-concluir:hover {
+            background-color: #219150;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cabecalho">
+        <div class="titulo-container">
+            <!-- Botão adicionado aqui! -->
+            <a href="index.html" class="btn-voltar">⬅ Voltar ao Início</a>
+            <h1>📦 Tela de Pedidos - Pão Brioche</h1>
+        </div>
+        <button class="btn-atualizar" onclick="carregarPedidos()">Atualizar Pedidos</button>
+    </div>
+
+    <!-- É aqui dentro que o JavaScript vai injetar os cartões -->
+    <div id="container-pedidos" class="grid-pedidos">
+        <p>Carregando pedidos...</p>
+    </div>
+
+    <script>
+        // Quando a página abrir, ele já busca os pedidos
+        window.onload = () => {
+            carregarPedidos();
+        };
+
+        async function carregarPedidos() {
+            const container = document.getElementById('container-pedidos');
+            container.innerHTML = '<p>Carregando pedidos...</p>';
+
+            try {
+                // ------------------------------------------------------------------
+                // IMPORTANTE: Aqui você vai puxar da sua API real depois.
+                // ------------------------------------------------------------------
+                
+                // Lista Falsa (Mock) para você ver a tela funcionando
+                const pedidosData = [
+                    {
+                        id_pedido: "1041",
+                        data_hora_entrega: "02/08/2026 - 15:30",
+                        localizacao: "Rua Sete de Setembro, 442 - Centro",
+                        itens: ["2x Pão Caseiro", "500g Frios", "1x Coca-Cola 2L"]
+                    },
+                    {
+                        id_pedido: "1042",
+                        data_hora_entrega: "02/08/2026 - 16:00",
+                        localizacao: "Av. Brasil, 1020 - Bairro Novo",
+                        itens: ["1x Bolo de Cenoura", "10x Pão de Queijo"]
+                    },
+                    {
+                        id_pedido: "1043",
+                        data_hora_entrega: "02/08/2026 - 17:15",
+                        localizacao: "Retirada no Balcão",
+                        itens: ["30x Pão Francês"]
+                    }
+                ];
+
+                if (pedidosData.length === 0) {
+                    container.innerHTML = '<p>Nenhum pedido pendente no momento.</p>';
+                    return;
+                }
+
+                container.innerHTML = ''; // Limpa a mensagem de carregando
+
+                // Cria um cartão para cada pedido
+                pedidosData.forEach(pedido => {
+                    const div = document.createElement('div');
+                    div.className = 'cartao-pedido';
+                    
+                    // Transforma a lista de itens em tags <li>
+                    const itensHTML = pedido.itens.map(item => `<li>${item}</li>`).join('');
+
+                    div.innerHTML = `
+                        <div class="numero-pedido">Pedido #${pedido.id_pedido}</div>
+                        <div class="info-pedido"><strong>🚚 Entrega/Retirada:</strong> <br> ${pedido.data_hora_entrega}</div>
+                        <div class="info-pedido"><strong>📍 Localização:</strong> <br> ${pedido.localizacao}</div>
+                        
+                        <ul class="lista-itens">
+                            ${itensHTML}
+                        </ul>
+
+                        <button class="btn-concluir" onclick="concluirPedido('${pedido.id_pedido}', this)">✔️ Marcar como Concluído</button>
+                    `;
+
+                    container.appendChild(div);
+                });
+
+            } catch (error) {
+                console.error("Erro ao buscar pedidos:", error);
+                container.innerHTML = '<p style="color:red;">Erro ao carregar os pedidos. Verifique sua conexão com o servidor.</p>';
+            }
+        }
+
+        // Função para remover o pedido da tela quando estiver pronto
+        function concluirPedido(idPedido, botaoElemento) {
+            const confirmacao = confirm(`Deseja mesmo concluir o Pedido #${idPedido}?`);
+            
+            if (confirmacao) {
+                // Animação simples sumindo com o cartão da tela
+                const cartao = botaoElemento.parentElement;
+                cartao.style.display = 'none';
+            }
+        }
+    </script>
+</body>
+</html>

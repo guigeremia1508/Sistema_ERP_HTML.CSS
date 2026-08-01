@@ -134,6 +134,39 @@ app.get('/api/receitas', (req, res) => {
 });
 
 // =========================================================
+// ROTA NOVA: COMPRAS (Alimenta o Estoque e as Despesas)
+// =========================================================
+app.post('/api/compras', (req, res) => {
+    const { codigo_barras, nome, unidade, quantidade, custo_total, preco_venda } = req.body;
+    
+    // Garante que se o preço de venda vier vazio, ele salve como 0
+    const precoVendaFinal = preco_venda ? parseFloat(preco_venda) : 0;
+    
+    // 1. Verifica se o produto já existe no estoque
+    db.get(`SELECT id, quantidade FROM produtos WHERE codigo_barras = ?`, [codigo_barras], (err, row) => {
+        if (err) return res.status(500).json({ erro: err.message });
+        
+        if (row) {
+            // Se existir, atualiza a quantidade somando a compra nova
+            const novaQtd = parseFloat(row.quantidade) + parseFloat(quantidade);
+            db.run(`UPDATE produtos SET quantidade = ?, preco_custo = ?, preco_venda = ? WHERE id = ?`, 
+            [novaQtd, custo_total, precoVendaFinal, row.id]);
+        } else {
+            // Se não existir, cadastra como um produto novo
+            db.run(`INSERT INTO produtos (codigo_barras, nome, quantidade, preco_custo, preco_venda) VALUES (?, ?, ?, ?, ?)`, 
+            [codigo_barras, nome, quantidade, custo_total, precoVendaFinal]);
+        }
+        
+        // 2. Lança o custo total dessa compra no financeiro (despesas)
+        db.run(`INSERT INTO despesas (descricao, valor, tipo) VALUES (?, ?, ?)`, 
+        [`Compra de Estoque: ${nome}`, custo_total, 'Compra de Estoque'], function(err2) {
+            if (err2) return res.status(500).json({ erro: err2.message });
+            res.status(201).json({ mensagem: 'Compra registrada! Estoque e financeiro atualizados.' });
+        });
+    });
+});
+
+// =========================================================
 // ROTAS DE PRODUTOS (ESTOQUE)
 // =========================================================
 app.post('/api/produtos', (req, res) => {

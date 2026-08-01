@@ -9,7 +9,7 @@
         body { display: flex; height: 100vh; background-color: #f4f6f9; }
         
         /* Menu Lateral */
-        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; padding: 20px 0; }
+        .sidebar { width: 250px; background-color: #2c3e50; color: white; display: flex; flex-direction: column; padding: 20px 0; overflow-y: auto; }
         .sidebar h2 { text-align: center; margin-bottom: 30px; font-size: 1.5rem; border-bottom: 1px solid #34495e; padding-bottom: 15px; }
         .menu-btn { background: none; border: none; color: #ecf0f1; padding: 15px 20px; text-align: left; font-size: 1.1rem; cursor: pointer; transition: 0.3s; width: 100%; display: block; }
         .menu-btn:hover, .menu-btn.ativo { background-color: #34495e; border-left: 4px solid #e74c3c; }
@@ -26,10 +26,7 @@
         .card h3 { font-size: 1rem; color: #7f8c8d; margin-bottom: 10px; }
         .card .valor { font-size: 1.8rem; font-weight: bold; color: #2c3e50; }
         
-        .botoes-extras { display: flex; gap: 15px; margin-bottom: 30px; }
         .btn-acao { padding: 15px 25px; border: none; border-radius: 8px; cursor: pointer; font-size: 1.1rem; font-weight: bold; color: white; }
-        .btn-pedidos { background-color: #e67e22; }
-        .btn-repositor { background-color: #27ae60; }
         .btn-azul { background-color: #3498db; }
         .btn-vermelho { background-color: #e74c3c; }
         .btn-verde { background-color: #2ecc71; }
@@ -45,6 +42,7 @@
         .btn-excluir { background-color: #e74c3c; }
 
         .form-grupo { margin-bottom: 15px; }
+        .form-grupo label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
         .form-grupo input, .form-grupo select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 1rem; }
     </style>
 </head>
@@ -55,6 +53,8 @@
         <h2>👨‍💼 Gestão Padaria</h2>
         <a href="index.html" class="menu-btn" style="background-color: #c0392b; color: white; text-align: center; text-decoration: none; margin-bottom: 20px; font-weight: bold;">🔙 Voltar ao Início</a>
         <button class="menu-btn ativo" onclick="mudarSecao('dashboard')">📊 Dashboard</button>
+        <button class="menu-btn" onclick="mudarSecao('compras')">🛒 Compras (Estoque)</button>
+        <button class="menu-btn" onclick="mudarSecao('despesas')">🧾 Despesas Recorrentes</button>
         <button class="menu-btn" onclick="mudarSecao('estoque')">📦 Estoque</button>
         <button class="menu-btn" onclick="mudarSecao('financeiro')">💰 Financeiro (DRE)</button>
         <button class="menu-btn" onclick="mudarSecao('caixa')">⚙️ Controle de Caixa</button>
@@ -67,10 +67,6 @@
         <!-- DASHBOARD -->
         <div id="dashboard" class="secao ativo">
             <h1>Visão Geral do Dia</h1>
-            <div class="botoes-extras">
-                <button class="btn-acao btn-pedidos">📋 Tela de Pedidos</button>
-                <button class="btn-acao btn-repositor">🛒 Tela de Repositor</button>
-            </div>
             <div class="cards-grid">
                 <div class="card" style="border-left-color: #2ecc71;">
                     <h3>Faturamento (Hoje)</h3>
@@ -79,6 +75,81 @@
                 <div class="card" style="border-left-color: #3498db;">
                     <h3>Total de Vendas</h3>
                     <div class="valor" id="dash-vendas">0</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- COMPRAS (NOVA SEÇÃO) -->
+        <div id="compras" class="secao">
+            <h1>🛒 Compras e Entrada de Produtos</h1>
+            <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 800px;">
+                <p style="margin-bottom: 20px; color: #555;">Cadastre a entrada de produtos. O custo será jogado no financeiro e a quantidade irá direto para o estoque.</p>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                    <div class="form-grupo">
+                        <label>Cód. Produto / Barras:</label>
+                        <input type="text" id="compra-cod" placeholder="Ex: 001">
+                    </div>
+                    <div class="form-grupo">
+                        <label>Nome do Produto/Insumo:</label>
+                        <input type="text" id="compra-nome" placeholder="Ex: Farinha, Salgadinho">
+                    </div>
+                    
+                    <div class="form-grupo">
+                        <label>Unidade de Medida:</label>
+                        <select id="compra-un">
+                            <option value="KG">Quilograma (KG)</option>
+                            <option value="UN">Unidade (UN)</option>
+                            <option value="L">Litro (L)</option>
+                            <option value="CX">Caixa (CX)</option>
+                        </select>
+                    </div>
+                    <div class="form-grupo">
+                        <label>Quantidade Comprada:</label>
+                        <input type="number" id="compra-qtd" placeholder="Ex: 50" step="0.01">
+                    </div>
+
+                    <div class="form-grupo">
+                        <label>Custo de Compra (Total) R$:</label>
+                        <input type="number" id="compra-custo" placeholder="Ex: 150.00" step="0.01">
+                    </div>
+                    <div class="form-grupo">
+                        <label>Preço de Venda Final R$ (Opcional):</label>
+                        <input type="number" id="compra-venda" placeholder="Por quanto será vendido?" step="0.01">
+                    </div>
+                </div>
+                
+                <button class="btn-acao btn-verde" style="width: 100%; margin-top: 15px;" onclick="registrarCompra()">➕ Confirmar Compra</button>
+            </div>
+        </div>
+
+        <!-- DESPESAS RECORRENTES (NOVA SEÇÃO) -->
+        <div id="despesas" class="secao">
+            <h1>🧾 Despesas Recorrentes (Água, Luz, Internet)</h1>
+            <div style="display: flex; gap: 20px; flex-wrap: wrap;">
+                <div style="flex: 1; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                    <h3>Adicionar Nova Despesa</h3><br>
+                    <div class="form-grupo">
+                        <label>Tipo de Despesa:</label>
+                        <input type="text" id="desp-nome" placeholder="Ex: Conta de Luz, Aluguel">
+                    </div>
+                    <div class="form-grupo">
+                        <label>Valor (R$):</label>
+                        <input type="number" id="desp-valor" placeholder="Ex: 250.00" step="0.01">
+                    </div>
+                    <div class="form-grupo">
+                        <label>Data de Vencimento:</label>
+                        <input type="date" id="desp-venc">
+                    </div>
+                    <button class="btn-acao btn-vermelho" style="width: 100%;" onclick="registrarDespesa()">Adicionar Despesa</button>
+                </div>
+
+                <div style="flex: 2; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+                    <h3>📋 Histórico de Despesas</h3>
+                    <table style="margin-top: 10px;">
+                        <thead><tr><th>Despesa</th><th>Vencimento</th><th>Valor</th><th>Status</th></tr></thead>
+                        <tbody id="tabela-despesas"></tbody>
+                    </table>
                 </div>
             </div>
         </div>
@@ -154,7 +225,7 @@
             </div>
         </div>
 
-        <!-- SEÇÃO: RH (ATUALIZADA) -->
+        <!-- SEÇÃO: RH -->
         <div id="rh" class="secao">
             <h1>🧑‍🤝‍🧑 Recursos Humanos (RH)</h1>
             
@@ -235,6 +306,80 @@
             if(idSecao === 'financeiro') carregarFinanceiro(); 
             if(idSecao === 'caixa') carregarCaixa();
             if(idSecao === 'rh') carregarRH(); 
+            if(idSecao === 'despesas') carregarDespesas();
+        }
+
+        // --- COMPRAS ---
+        async function registrarCompra() {
+            const codigo = document.getElementById('compra-cod').value;
+            const nome = document.getElementById('compra-nome').value;
+            const unidade = document.getElementById('compra-un').value;
+            const qtd = parseFloat(document.getElementById('compra-qtd').value);
+            const custo = parseFloat(document.getElementById('compra-custo').value);
+            
+            // Pega o valor da venda. Se estiver vazio, define como 0
+            const vendaInput = document.getElementById('compra-venda').value;
+            const venda = vendaInput ? parseFloat(vendaInput) : 0;
+
+            // Removida a obrigatoriedade da variável venda
+            if (!codigo || !nome || isNaN(qtd) || isNaN(custo)) {
+                return alert("Preencha os campos obrigatórios da compra corretamente!");
+            }
+
+            const res = await fetch('http://localhost:3000/api/compras', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ codigo_barras: codigo, nome, unidade, quantidade: qtd, custo_total: custo, preco_venda: venda })
+            });
+
+            if(res.ok) {
+                alert("Compra registrada! O produto foi para o estoque e o valor para as despesas.");
+                document.getElementById('compra-cod').value = '';
+                document.getElementById('compra-nome').value = '';
+                document.getElementById('compra-qtd').value = '';
+                document.getElementById('compra-custo').value = '';
+                document.getElementById('compra-venda').value = '';
+            } else {
+                alert("Erro ao registrar a compra no servidor.");
+            }
+        }
+
+        // --- DESPESAS RECORRENTES ---
+        async function registrarDespesa() {
+            const nome = document.getElementById('desp-nome').value;
+            const valor = parseFloat(document.getElementById('desp-valor').value);
+            const vencimento = document.getElementById('desp-venc').value;
+
+            if(!nome || isNaN(valor) || !vencimento) return alert("Preencha todos os campos da despesa!");
+
+            const res = await fetch('http://localhost:3000/api/despesas', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ descricao: nome, valor: valor, data_vencimento: vencimento, status: 'Pendente' })
+            });
+
+            if(res.ok) {
+                alert("Despesa registrada com sucesso!");
+                document.getElementById('desp-nome').value = '';
+                document.getElementById('desp-valor').value = '';
+                document.getElementById('desp-venc').value = '';
+                carregarDespesas();
+            }
+        }
+
+        async function carregarDespesas() {
+            const res = await fetch('http://localhost:3000/api/despesas');
+            const despesas = await res.json();
+            const tabela = document.getElementById('tabela-despesas');
+            tabela.innerHTML = '';
+            despesas.forEach(d => {
+                tabela.innerHTML += `<tr>
+                    <td><strong>${d.descricao}</strong></td>
+                    <td>${new Date(d.data_vencimento).toLocaleDateString('pt-BR')}</td>
+                    <td style="color: #e74c3c;">R$ ${d.valor.toFixed(2)}</td>
+                    <td>${d.status || 'Pendente'}</td>
+                </tr>`;
+            });
         }
 
         // --- ESTOQUE, FINANCEIRO E CAIXA ---
@@ -292,7 +437,7 @@
         }
 
         // ==========================================
-        // FUNÇÕES DO RH (ATUALIZADAS)
+        // FUNÇÕES DO RH
         // ==========================================
         function carregarRH() {
             buscarFuncionarios();
@@ -337,7 +482,6 @@
 
             funcionarios.forEach(f => {
                 const statusStr = f.ativo ? '<span style="color: green; font-weight:bold;">Ativo</span>' : '<span style="color: red; font-weight:bold;">Inativo</span>';
-                
                 tabela.innerHTML += `
                     <tr>
                         <td><strong>${f.nome}</strong></td>

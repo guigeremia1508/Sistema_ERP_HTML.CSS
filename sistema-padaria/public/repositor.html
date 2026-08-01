@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estoque & Reposição - Pão Brioche</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f4f6f9;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+
+        /* Cabeçalho */
+        .cabecalho {
+            display: flex;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #ddd;
+            padding-bottom: 15px;
+            gap: 20px;
+        }
+
+        .btn-voltar {
+            background-color: #e74c3c;
+            color: white;
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            font-weight: bold;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+
+        .btn-voltar:hover { background-color: #c0392b; }
+
+        /* Sistema de Abas */
+        .container-abas {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .btn-aba {
+            padding: 12px 25px;
+            background-color: #e0e0e0;
+            border: none;
+            border-radius: 5px 5px 0 0;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            color: #555;
+            transition: 0.3s;
+        }
+
+        .btn-aba.ativo {
+            background-color: #34495e;
+            color: white;
+        }
+
+        .conteudo-aba {
+            display: none;
+            background: white;
+            padding: 25px;
+            border-radius: 0 8px 8px 8px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        .conteudo-aba.ativa {
+            display: block;
+        }
+
+        /* Tabela de Gerenciamento */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: left;
+            border-bottom: 1px solid #ddd;
+        }
+
+        th { background-color: #f8f9fa; color: #2c3e50; }
+
+        .btn-editar {
+            background-color: #f39c12;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        .btn-editar:hover { background-color: #d68910; }
+
+        /* Formulário de Adicionar Produto */
+        .grupo-form {
+            margin-bottom: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .grupo-form label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #2c3e50;
+        }
+
+        .grupo-form input, .grupo-form select {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 15px;
+        }
+
+        .btn-salvar {
+            background-color: #27ae60;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 10px;
+            width: 100%;
+        }
+
+        .btn-salvar:hover { background-color: #219150; }
+
+        .opcional-badge {
+            font-size: 0.8em;
+            color: #7f8c8d;
+            font-weight: normal;
+        }
+
+        /* Estilos do Modal (Janela de Edição) */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center; justify-content: center;
+        }
+
+        .modal-conteudo {
+            background: white;
+            padding: 25px;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+        }
+
+        .botoes-modal {
+            display: flex; gap: 10px; margin-top: 20px;
+        }
+        
+        .btn-cancelar {
+            background: #95a5a6; color: white; border: none; padding: 10px; border-radius: 4px; cursor: pointer; flex: 1; font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="cabecalho">
+        <a href="index.html" class="btn-voltar">⬅ Voltar ao Início</a>
+        <h1 style="margin: 0; color: #2c3e50;">📦 Painel do Repositor (Estoque Geral)</h1>
+    </div>
+
+    <!-- Abas de Navegação -->
+    <div class="container-abas">
+        <button class="btn-aba ativo" onclick="abrirAba(event, 'aba-gerenciar')">📋 Gerenciar Estoque</button>
+        <button class="btn-aba" onclick="abrirAba(event, 'aba-adicionar')">➕ Adicionar Produto / Insumo</button>
+    </div>
+
+    <!-- ABA 1: GERENCIAR ESTOQUE -->
+    <div id="aba-gerenciar" class="conteudo-aba ativa">
+        <h2 style="margin-top: 0;">Estoque Completo da Padaria</h2>
+        <p>Aqui estão todos os itens: matérias-primas, produtos de revenda e fabricação própria.</p>
+        
+        <table>
+            <thead>
+                <tr>
+                    <th>Cód. Barras</th>
+                    <th>Nome do Produto</th>
+                    <th>Quantidade</th>
+                    <th>Custo Total</th>
+                    <th>Preço Venda</th>
+                    <th>Ação</th>
+                </tr>
+            </thead>
+            <tbody id="tabela-estoque-body">
+                <tr><td colspan="6">Carregando estoque...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ABA 2: ADICIONAR PRODUTO -->
+    <div id="aba-adicionar" class="conteudo-aba">
+        <h2 style="margin-top: 0;">Entrada de Novo Produto no Estoque</h2>
+        
+        <form id="form-novo-produto">
+            <div class="grupo-form">
+                <label>Cód. Produto / Barras:</label>
+                <input type="text" id="add-codigo" placeholder="Ex: 78910101010" required>
+            </div>
+
+            <div class="grupo-form">
+                <label>Nome do Produto/Insumo:</label>
+                <input type="text" id="add-nome" placeholder="Ex: Farinha de Trigo Especial" required>
+            </div>
+
+            <div class="grupo-form">
+                <label>Unidade de Medida:</label>
+                <select id="add-unidade" required>
+                    <option value="">Selecione...</option>
+                    <option value="KG">Quilograma (KG)</option>
+                    <option value="UN">Unidade (UN)</option>
+                    <option value="L">Litro (L)</option>
+                    <option value="CX">Caixa (CX)</option>
+                </select>
+            </div>
+
+            <div style="display: flex; gap: 15px;">
+                <div class="grupo-form" style="flex: 1;">
+                    <label>Quantidade Comprada:</label>
+                    <input type="number" id="add-qtd" step="0.01" placeholder="Ex: 50" required>
+                </div>
+
+                <div class="grupo-form" style="flex: 1;">
+                    <label>Custo de Compra (Total) R$:</label>
+                    <input type="number" id="add-custo" step="0.01" placeholder="Ex: 120.50" required>
+                </div>
+            </div>
+
+            <div class="grupo-form">
+                <label>Preço de Venda Final R$ <span class="opcional-badge">(Deixe em branco se for Matéria-Prima)</span>:</label>
+                <!-- O input de venda NÃO tem o "required", sendo totalmente opcional -->
+                <input type="number" id="add-venda" step="0.01" placeholder="Ex: 0.00 ou deixe vazio">
+            </div>
+
+            <button type="submit" class="btn-salvar">📥 Salvar Produto no Estoque</button>
+        </form>
+    </div>
+
+    <!-- JANELA MODAL PARA EDITAR PRODUTO -->
+    <div id="modal-editar" class="modal-overlay">
+        <div class="modal-conteudo">
+            <h2 style="margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px;">Editar Produto</h2>
+            <form id="form-editar-produto">
+                <!-- ID Escondido -->
+                <input type="hidden" id="edit-id">
+
+                <div class="grupo-form">
+                    <label>Nome do Produto:</label>
+                    <input type="text" id="edit-nome" required>
+                </div>
+
+                <div style="display: flex; gap: 15px;">
+                    <div class="grupo-form" style="flex: 1;">
+                        <label>Nova Quantidade:</label>
+                        <input type="text" id="edit-qtd" required>
+                    </div>
+                    <div class="grupo-form" style="flex: 1;">
+                        <label>Preço de Venda R$:</label>
+                        <input type="number" step="0.01" id="edit-venda">
+                    </div>
+                </div>
+
+                <div class="botoes-modal">
+                    <button type="button" class="btn-cancelar" onclick="fecharModal()">Cancelar</button>
+                    <button type="submit" class="btn-salvar" style="margin-top: 0; flex: 1;">💾 Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Array falso (Mock) para simular o banco de dados antes da API estar 100% conectada
+        let bancoEstoque = [
+            { id: 1, codigo_barras: "78912345", nome: "Farinha de Trigo", quantidade: "50 KG", preco_custo: 120.00, preco_venda: 0 },
+            { id: 2, codigo_barras: "001", nome: "Coca-Cola 2L", quantidade: "20 UN", preco_custo: 140.00, preco_venda: 12.00 },
+            { id: 3, codigo_barras: "200001234", nome: "Pão Caseiro", quantidade: "15 UN", preco_custo: 0, preco_venda: 8.50 }
+        ];
+
+        window.onload = () => {
+            carregarTabelaEstoque();
+        };
+
+        // Lógica para trocar de abas
+        function abrirAba(evento, idAba) {
+            document.querySelectorAll('.conteudo-aba').forEach(aba => aba.classList.remove('ativa'));
+            document.querySelectorAll('.btn-aba').forEach(btn => btn.classList.remove('ativo'));
+            
+            document.getElementById(idAba).classList.add('ativa');
+            evento.currentTarget.classList.add('ativo');
+
+            if (idAba === 'aba-gerenciar') carregarTabelaEstoque();
+        }
+
+        // Carrega os dados na Tabela
+        async function carregarTabelaEstoque() {
+            const tbody = document.getElementById('tabela-estoque-body');
+            tbody.innerHTML = '';
+
+            // Aqui no futuro você usa: const res = await fetch('/api/produtos');
+            // const produtos = await res.json();
+            const produtos = bancoEstoque; // Usando a lista falsa por enquanto
+
+            if (produtos.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Estoque vazio.</td></tr>';
+                return;
+            }
+
+            produtos.forEach(prod => {
+                const vendaTxt = prod.preco_venda > 0 ? `R$ ${parseFloat(prod.preco_venda).toFixed(2)}` : '<span style="color:#7f8c8d;">Matéria-Prima</span>';
+                
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${prod.codigo_barras || 'N/A'}</td>
+                    <td><strong>${prod.nome}</strong></td>
+                    <td>${prod.quantidade}</td>
+                    <td>R$ ${parseFloat(prod.preco_custo).toFixed(2)}</td>
+                    <td>${vendaTxt}</td>
+                    <td><button class="btn-editar" onclick="abrirModalEditar(${prod.id})">✏️ Editar</button></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // Lógica de Enviar NOVO Produto
+        document.getElementById('form-novo-produto').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            const codigo = document.getElementById('add-codigo').value;
+            const nome = document.getElementById('add-nome').value;
+            const unidade = document.getElementById('add-unidade').value;
+            const qtd = document.getElementById('add-qtd').value;
+            const custo = parseFloat(document.getElementById('add-custo').value);
+            
+            // Pega o valor de venda. Se estiver vazio, salva como 0 (Matéria-prima)
+            let vendaRaw = document.getElementById('add-venda').value;
+            const venda = vendaRaw ? parseFloat(vendaRaw) : 0;
+
+            const novoProduto = {
+                id: Date.now(), // Gera um ID falso por enquanto
+                codigo_barras: codigo,
+                nome: nome,
+                quantidade: `${qtd} ${unidade}`,
+                preco_custo: custo,
+                preco_venda: venda
+            };
+
+            // Adiciona no "banco falso" (No futuro: fetch('/api/produtos', { method: 'POST'... })
+            bancoEstoque.push(novoProduto);
+
+            alert("Produto adicionado ao estoque com sucesso!");
+            this.reset();
+        });
+
+        // ==========================================
+        // LÓGICA DO MODAL DE EDIÇÃO
+        // ==========================================
+        function abrirModalEditar(id) {
+            const produto = bancoEstoque.find(p => p.id === id);
+            if(!produto) return;
+
+            document.getElementById('edit-id').value = produto.id;
+            document.getElementById('edit-nome').value = produto.nome;
+            document.getElementById('edit-qtd').value = produto.quantidade;
+            document.getElementById('edit-venda').value = produto.preco_venda;
+
+            document.getElementById('modal-editar').style.display = 'flex';
+        }
+
+        function fecharModal() {
+            document.getElementById('modal-editar').style.display = 'none';
+        }
+
+        document.getElementById('form-editar-produto').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const idEdit = parseInt(document.getElementById('edit-id').value);
+            const index = bancoEstoque.findIndex(p => p.id === idEdit);
+
+            if(index !== -1) {
+                bancoEstoque[index].nome = document.getElementById('edit-nome').value;
+                bancoEstoque[index].quantidade = document.getElementById('edit-qtd').value;
+                
+                let novaVenda = document.getElementById('edit-venda').value;
+                bancoEstoque[index].preco_venda = novaVenda ? parseFloat(novaVenda) : 0;
+
+                alert("Produto atualizado com sucesso!");
+                fecharModal();
+                carregarTabelaEstoque(); // Recarrega a tabela atualizada
+            }
+        });
+    </script>
+</body>
+</html>

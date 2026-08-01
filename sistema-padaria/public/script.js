@@ -7,8 +7,11 @@ window.onload = async () => {
 
 async function carregarListaInsumosGlobal() {
     try {
-        const res = await fetch('/api/insumos');
-        insumosNoBanco = await res.json();
+        const res = await fetch('/api/produtos'); // Puxa do estoque geral de produtos
+        const todosProdutos = await res.json();
+        
+        // FILTRO MÁGICO: Guarda na lista de insumos apenas os produtos com preço de venda = 0
+        insumosNoBanco = todosProdutos.filter(p => p.preco_venda === 0);
     } catch (error) {
         console.error("Erro ao carregar insumos:", error);
     }
@@ -38,52 +41,45 @@ function abrirAba(evento, idAba) {
 }
 
 // -----------------------------------------------------------
-// INSUMOS
+// ESTOQUE MATÉRIA-PRIMA (AGORA BUSCANDO DO ESTOQUE GERAL)
 // -----------------------------------------------------------
-const formInsumo = document.getElementById('form-insumo');
-if (formInsumo) {
-    formInsumo.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const dados = {
-            nome: document.getElementById('insumo-nome').value,
-            quantidade: parseFloat(document.getElementById('insumo-qtd').value),
-            unidade: document.getElementById('insumo-unidade').value,
-            custo_total: parseFloat(document.getElementById('insumo-custo').value)
-        };
-
-        const res = await fetch('/api/insumos', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(dados)
-        });
-
-        const resposta = await res.json();
-        alert(resposta.mensagem || resposta.erro);
-        if (res.ok) {
-            formInsumo.reset();
-            carregarListaInsumosGlobal();
-        }
-    });
-}
-
 async function carregarEstoqueInsumos() {
     const tbody = document.getElementById('tabela-insumos-body');
     tbody.innerHTML = '<tr><td colspan="3" class="texto-vazio">Carregando estoque...</td></tr>';
+    
     try {
-        const res = await fetch('/api/insumos');
-        const insumos = await res.json();
-        if (insumos.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" class="texto-vazio">O estoque está vazio.</td></tr>';
+        // Agora busca da API de produtos, não da antiga api/insumos
+        const res = await fetch('/api/produtos'); 
+        
+        if (!res.ok) {
+            throw new Error(`Erro de HTTP: ${res.status}`);
+        }
+
+        const todosProdutos = await res.json();
+        
+        // Filtra apenas as matérias-primas (preço_venda = 0)
+        const materiasPrimas = todosProdutos.filter(p => p.preco_venda === 0);
+
+        if (materiasPrimas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="texto-vazio">Nenhuma matéria-prima (custo venda = 0) encontrada no estoque.</td></tr>';
             return;
         }
+
         tbody.innerHTML = '';
-        insumos.forEach(item => {
+        materiasPrimas.forEach(item => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td><strong>${item.nome}</strong></td><td>${item.quantidade} ${item.unidade}</td><td>R$ ${item.custo_total.toFixed(2)}</td>`;
+            // Como a tabela de produtos mudou as colunas, adaptamos a visualização
+            // Assumimos que o custo_total está no preco_custo
+            tr.innerHTML = `
+                <td><strong>${item.nome}</strong></td>
+                <td>${item.quantidade}</td>
+                <td>R$ ${item.preco_custo.toFixed(2)}</td>
+            `;
             tbody.appendChild(tr);
         });
     } catch (error) {
-        tbody.innerHTML = '<tr><td colspan="3" class="texto-vazio" style="color:red;">Erro ao buscar estoque.</td></tr>';
+        console.error("Erro capturado:", error);
+        tbody.innerHTML = '<tr><td colspan="3" class="texto-vazio" style="color:red;">Erro ao buscar estoque de matéria-prima.</td></tr>';
     }
 }
 
@@ -95,6 +91,7 @@ function adicionarLinhaIngrediente(idContainer) {
     const selectsAntigos = container.querySelectorAll('.select-ingrediente');
     const nomesJaSelecionados = Array.from(selectsAntigos).map(select => select.value);
 
+    // Usa a lista filtrada insumosNoBanco
     const ingredientesDisponiveis = insumosNoBanco.filter(insumo => !nomesJaSelecionados.includes(insumo.nome));
     if (ingredientesDisponiveis.length === 0) {
         alert("Você já adicionou todos os ingredientes disponíveis no seu estoque!");
@@ -103,7 +100,10 @@ function adicionarLinhaIngrediente(idContainer) {
 
     let optionsHTML = '<option value="">Selecione o ingrediente...</option>';
     ingredientesDisponiveis.forEach(ins => {
-        optionsHTML += `<option value="${ins.nome}" data-unidade="${ins.unidade}">${ins.nome}</option>`;
+        // Como o item vem de 'produtos', a unidade está junto com a quantidade. 
+        // Para simplificar, vou deixar a unidade como um traço genérico no data-attribute 
+        // ou você pode extrair da string quantidade se precisar.
+        optionsHTML += `<option value="${ins.nome}" data-unidade="Unid.">${ins.nome}</option>`;
     });
 
     const div = document.createElement('div');
@@ -244,15 +244,23 @@ async function carregarEstoquePronto() {
     
     try {
         const res = await fetch('/api/produtos');
-        const produtos = await res.json();
+        const todosProdutos = await res.json();
         
-        if (produtos.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="texto-vazio">Nenhum produto no estoque. Produza algo primeiro!</td></tr>';
+        // NOVO FILTRO: Só mostra no estoque pronto os produtos que têm preço de venda maior que zero
+        // E que possuem o código de barras começando com '20000' (fabricação própria)
+        const produtosProntos = todosProdutos.filter(p => 
+            p.preco_venda > 0 && 
+            p.codigo_barras && 
+            p.codigo_barras.startsWith('20000')
+        );
+
+        if (produtosProntos.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="texto-vazio">Nenhum produto de fabricação própria no estoque. Produza algo primeiro!</td></tr>';
             return;
         }
 
         tbody.innerHTML = '';
-        produtos.forEach(item => {
+        produtosProntos.forEach(item => {
             const validade = item.data_validade ? item.data_validade.split('-').reverse().join('/') : '--/--/----';
             const tr = document.createElement('tr');
             tr.innerHTML = `
@@ -279,10 +287,17 @@ async function carregarProdutosPesagem() {
     
     try {
         const res = await fetch('/api/produtos');
-        produtosNoBanco = await res.json();
+        const todosProdutos = await res.json();
+        
+        // NOVO FILTRO: Só permite pesar produtos de fabricação própria (código começa com 20000)
+        produtosNoBanco = todosProdutos.filter(p => 
+            p.preco_venda > 0 && 
+            p.codigo_barras && 
+            p.codigo_barras.startsWith('20000')
+        );
         
         if (produtosNoBanco.length === 0) {
-            select.innerHTML = '<option value="">Nenhum produto no Estoque Pronto</option>';
+            select.innerHTML = '<option value="">Nenhum produto de fabricação própria no Estoque Pronto</option>';
             return;
         }
 

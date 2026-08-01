@@ -14,17 +14,23 @@
             gap: 20px;
             justify-content: center;
             margin-top: 40px;
-            flex-wrap: wrap;
+            flex-wrap: nowrap; /* Garante que fique tudo na mesma linha */
+            max-width: 1200px; /* Aumentei para caber os 5 itens lado a lado */
+            margin-left: auto;
+            margin-right: auto;
+            overflow-x: auto; /* Se abrir no celular, permite rolar para o lado sem quebrar */
+            padding-bottom: 10px;
         }
         .cartao-modulo {
             background: white;
-            padding: 30px;
+            padding: 30px 20px;
             border-radius: 10px;
             box-shadow: 0 4px 8px rgba(0,0,0,0.1);
             text-align: center;
             text-decoration: none;
             color: #333;
-            width: 250px;
+            width: 200px; /* Diminuí um pouco a largura para caberem melhor */
+            flex: 0 0 auto; /* Mantém o tamanho fixo de cada quadrado */
             transition: transform 0.2s, border-color 0.2s;
             border: 2px solid transparent;
         }
@@ -33,12 +39,9 @@
             border-color: #3498db;
         }
         .cartao-modulo h2 {
-            margin: 15px 0 10px 0;
+            margin: 15px 0 0 0; /* Removida a margem inferior já que não tem mais subtítulo */
             color: #2c3e50;
-        }
-        .cartao-modulo p {
-            font-size: 0.9rem;
-            color: #7f8c8d;
+            font-size: 1.5rem;
         }
         .icone-grande {
             font-size: 3.5rem;
@@ -54,22 +57,31 @@
             <!-- Link para o Caixa -->
             <a href="caixa.html" class="cartao-modulo">
                 <div class="icone-grande">🛒</div>
-                <h2>Caixa / PDV</h2>
-                <p>Passar vendas, emitir notas e registrar pagamentos.</p>
+                <h2>Caixa</h2>
             </a>
 
             <!-- Link para a Cozinha -->
             <a href="cozinha.html" class="cartao-modulo">
                 <div class="icone-grande">👨‍🍳</div>
-                <h2>Cozinha / Produção</h2>
-                <p>Entrada de matéria-prima, receitas e geração de etiquetas.</p>
+                <h2>Cozinha</h2>
             </a>
 
-            <!-- Link para o Gerente CORRIGIDO -->
+            <!-- Link para o Gerente -->
             <a href="gerente.html" class="cartao-modulo">
                 <div class="icone-grande">📊</div>
-                <h2>Gerente / Dashboard</h2>
-                <p>Relatórios, fluxo de caixa, estoque e cálculo de lucros.</p>
+                <h2>Gerente</h2>
+            </a>
+
+            <!-- Link para Pedidos -->
+            <a href="pedidos.html" class="cartao-modulo">
+                <div class="icone-grande">📋</div>
+                <h2>Pedidos</h2>
+            </a>
+
+            <!-- Link para Repositor -->
+            <a href="repositor.html" class="cartao-modulo">
+                <div class="icone-grande">🏬</div>
+                <h2>Repositor</h2>
             </a>
         </div>
     </div>
