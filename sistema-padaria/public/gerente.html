@@ -680,6 +680,23 @@
                 `;
             });
         }
+
+        // =======================================================
+        // 🔄 ATUALIZAÇÃO AUTOMÁTICA (A cada 5 segundos)
+        // =======================================================
+        setInterval(() => {
+            // Descobre qual tela o gerente está vendo agora
+            const secaoAtiva = document.querySelector('.secao.ativo').id;
+            
+            // Atualiza apenas a tela que está aberta
+            if(secaoAtiva === 'dashboard') carregarDashboard();
+            if(secaoAtiva === 'estoque') carregarEstoque();
+            if(secaoAtiva === 'financeiro') carregarFinanceiro(); 
+            if(secaoAtiva === 'caixa') carregarCaixa();
+            if(secaoAtiva === 'rh') buscarRelatorioPonto(); // Atualiza os pontos batidos no RH
+            if(secaoAtiva === 'despesas') carregarDespesas();
+            
+        }, 5000); // 5000 = 5 segundos
     </script>
 </body>
 </html>
