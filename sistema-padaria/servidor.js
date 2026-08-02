@@ -250,34 +250,60 @@ app.delete('/api/produtos/:id', (req, res) => {
 // =========================================================
 app.post('/api/vendas', (req, res) => {
     const db = getDb(req);
-    const { total_venda, metodo_pagamento, itens, cpf } = req.body;
-    const formaPagto = metodo_pagamento || req.body.forma_pagamento || 'Dinheiro';
-    const cpfCliente = cpf || 'Não Informado';
+    
+    // LOG: Isso vai imprimir no seu terminal o que chegou do caixa, ótimo para debugar!
+    console.log("🛒 Recebendo nova venda:", req.body); 
+
+    // Aceita vários formatos de nome para garantir que nada passe despercebido
+    const total_venda = req.body.total_venda || req.body.total || 0;
+    const formaPagto = req.body.metodo_pagamento || req.body.forma_pagamento || 'Dinheiro';
+    const cpfCliente = req.body.cpf || 'Não Informado';
+    const itens = req.body.itens || [];
 
     db.run(
         `INSERT INTO vendas (total_venda, forma_pagamento, cpf) VALUES (?, ?, ?)`, 
         [total_venda, formaPagto, cpfCliente], 
         function(err) {
-            if (err) return res.status(500).json({ erro: err.message });
+            if (err) {
+                console.error("❌ Erro ao salvar a venda:", err.message);
+                return res.status(500).json({ erro: err.message });
+            }
             
             const idVenda = this.lastID;
+            console.log(`✅ Venda #${idVenda} salva com sucesso! Atualizando estoque...`);
 
-            if (itens && Array.isArray(itens) && itens.length > 0) {
+            if (Array.isArray(itens) && itens.length > 0) {
+                let itensAtualizados = 0;
+
                 itens.forEach(item => {
-                    const prodId = item.produtoId || item.id;
+                    // Cobre todas as possibilidades: ID do produto, ID do item ou Código de Barras
+                    const prodId = item.produtoId || item.id || item.codigo_barras; 
                     const qtdVendida = parseFloat(item.quantidade) || 1;
 
+                    // Tenta atualizar o estoque casando pelo ID OU pelo Código de Barras
                     db.run(
-                        `UPDATE produtos SET quantidade = CAST(quantidade AS REAL) - ? WHERE id = ?`,
-                        [qtdVendida, prodId],
+                        `UPDATE produtos SET quantidade = CAST(quantidade AS REAL) - ? WHERE id = ? OR codigo_barras = ?`,
+                        [qtdVendida, prodId, String(prodId)],
                         (errUpdate) => {
-                            if (errUpdate) console.error(`Erro ao dar baixa no produto ID ${prodId}:`, errUpdate);
+                            if (errUpdate) {
+                                console.error(`❌ Erro ao dar baixa no produto ${prodId}:`, errUpdate);
+                            } else {
+                                console.log(`📦 Baixa de ${qtdVendida} un do produto ${prodId} realizada.`);
+                            }
+                            
+                            itensAtualizados++;
+                            
+                            // Só devolve a resposta final quando terminar de atualizar todos os itens
+                            if (itensAtualizados === itens.length) {
+                                res.json({ mensagem: 'Venda registrada e estoque atualizado com sucesso!', id: idVenda });
+                            }
                         }
                     );
                 });
+            } else {
+                console.log(`⚠️ Venda #${idVenda} salva, mas sem produtos vinculados.`);
+                res.json({ mensagem: 'Venda registrada (sem itens especificados)!', id: idVenda });
             }
-
-            res.json({ mensagem: 'Venda registrada e estoque atualizado com sucesso!', id: idVenda });
         }
     );
 });

@@ -7,7 +7,7 @@ let cpfAtual = "0";
 // Variável para controlar a comunicação com o Celular (Maquininha)
 let intervalMaquininha = null;
 
-// Variáveis para o Histórico/Extrato do Gerente (Local)
+// Variáveis para o Histórico/Extrato do Gerente
 let totalVendasRealizadas = 0;
 let faturamentoDiario = 0;
 let ultimoMetodoPagamento = ''; 
@@ -15,16 +15,54 @@ let historicoVendas = [];
 
 window.onload = async () => {
     await carregarProdutosParaVenda();
+    await carregarHistoricoVendas(); // Busca dados do banco caso a página tenha sido recarregada (F5)
 };
 
 async function carregarProdutosParaVenda() {
     try {
-        const res = await fetch('/api/produtos');
+        const query = window.location.search; // Garante que o Modo Demo continue funcionando
+        const res = await fetch('/api/produtos' + query);
         if (res.ok) {
             produtosPDV = await res.json();
         }
     } catch (error) {
         console.error("Erro ao carregar produtos:", error);
+    }
+}
+
+// Reconstrói o histórico baseado no banco (Modo à Prova de Balas)
+async function carregarHistoricoVendas() {
+    try {
+        const query = window.location.search; 
+        const res = await fetch('/api/vendas' + query);
+        
+        if (res.ok) {
+            const vendas = await res.json();
+            
+            totalVendasRealizadas = 0;
+            faturamentoDiario = 0;
+            historicoVendas = [];
+
+            // Agora ele vai exibir TUDO que estiver salvo no banco, sem filtrar datas.
+            vendas.forEach(venda => {
+                totalVendasRealizadas++;
+                // É tolerante aos diferentes nomes de colunas que seu banco possa ter
+                faturamentoDiario += parseFloat(venda.total_venda || venda.valor || 0);
+                
+                // Tenta extrair a hora, se vier vazia, coloca um aviso
+                let dataStr = venda.data_hora || venda.data || "Sem hora";
+                let horaFormatada = dataStr.includes(' ') ? dataStr.split(' ')[1] : dataStr;
+
+                historicoVendas.push({
+                    hora: horaFormatada,
+                    cpf: venda.cpf || "0",
+                    metodo: venda.forma_pagamento || venda.metodo_pagamento || "N/A",
+                    valor: parseFloat(venda.total_venda || venda.valor || 0)
+                });
+            });
+        }
+    } catch (error) {
+        console.error("Erro ao carregar histórico de vendas do banco:", error);
     }
 }
 
@@ -46,11 +84,9 @@ async function abrirConsulta(tipo) {
         const tbody = document.getElementById('lista-consulta-estoque');
         tbody.innerHTML = '<tr><td colspan="4">Carregando...</td></tr>';
         
-        // Recarrega o estoque atualizado
         await carregarProdutosParaVenda();
         
         tbody.innerHTML = '';
-        // Filtra para exibir produtos cadastrados
         produtosPDV.forEach(p => {
             const val = p.data_fabricacao ? p.data_fabricacao.split('-').reverse().join('/') : '-';
             tbody.innerHTML += `<tr><td>${p.codigo_barras || p.id}</td><td>${p.nome}</td><td>${val}</td><td>${p.quantidade}</td></tr>`;
@@ -67,9 +103,10 @@ async function abrirConsulta(tipo) {
         tbody.innerHTML = '';
         
         if (historicoVendas.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhuma venda realizada ainda.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">Nenhuma venda realizada hoje.</td></tr>';
         } else {
-            historicoVendas.forEach(venda => {
+            // Inverte o array para mostrar as mais recentes primeiro
+            [...historicoVendas].reverse().forEach(venda => {
                 tbody.innerHTML += `<tr>
                     <td>${venda.hora}</td>
                     <td>${venda.cpf}</td>
@@ -146,7 +183,6 @@ function processarProduto(busca) {
     let precoFinalItem = 0;
     let nomeFinal = "";
     
-    // Identifica código de barras de balança (ex: 2000100500 -> R$ 5,00)
     if (busca.startsWith('2') && busca.length >= 10 && !isNaN(busca)) {
         const idProdutoStr = busca.substring(1, 5);
         const valorCentavosStr = busca.substring(5, 10);
@@ -283,7 +319,6 @@ function processarPagamento() {
     }
 }
 
-// INTEGRAÇÃO EM TEMPO REAL COM O CELULAR (MAQUININHA)
 async function iniciarSimulacaoTEF(mensagem, metodo, valor) {
     document.getElementById('modal-pagamento').style.display = 'none';
     document.getElementById('modal-maquininha').style.display = 'flex';
@@ -328,12 +363,11 @@ async function iniciarSimulacaoTEF(mensagem, metodo, valor) {
 // ---------------------------------------------------
 async function finalizarERegistrarVenda(metodo, valorCobrado) {
     document.getElementById('modal-pagamento').style.display = 'none';
-    
-    // 1. Atualiza variáveis locais
+    ultimoMetodoPagamento = metodo; 
+
+    // 1. Atualiza VISUALMENTE IMEDIATAMENTE! O histórico não some.
     totalVendasRealizadas++;
     faturamentoDiario += valorCobrado;
-    ultimoMetodoPagamento = metodo; 
-    
     historicoVendas.push({
         hora: new Date().toLocaleTimeString(),
         cpf: cpfAtual,
@@ -341,22 +375,23 @@ async function finalizarERegistrarVenda(metodo, valorCobrado) {
         valor: valorCobrado
     });
 
-    // 2. ENVIA A VENDA PARA O SERVIDOR (Dar baixa no Estoque e Salvar Finanças)
+    // 2. Registra no Servidor / Banco de Dados
     try {
         const dadosVenda = {
-            cpf_cliente: cpfAtual,
+            cpf: cpfAtual,
             metodo_pagamento: metodo,
             total_venda: valorCobrado,
             itens: carrinho
         };
 
-        await fetch('/api/vendas', {
+        const query = window.location.search; // Mantém no modo demo se necessário
+        await fetch('/api/vendas' + query, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dadosVenda)
         });
 
-        // Recarrega o estoque atualizado
+        // Atualiza a lista de estoque nos bastidores
         await carregarProdutosParaVenda();
 
     } catch (error) {
