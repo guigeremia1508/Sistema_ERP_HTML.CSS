@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Estoque & Reposição - Pão Brioche</title>
+<script src="modo-demo.js"></script>
+
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -196,7 +198,7 @@
                 </tr>
             </thead>
             <tbody id="tabela-estoque-body">
-                <tr><td colspan="6">Carregando estoque...</td></tr>
+                <tr><td colspan="6" style="text-align: center;">Carregando estoque...</td></tr>
             </tbody>
         </table>
     </div>
@@ -241,7 +243,6 @@
 
             <div class="grupo-form">
                 <label>Preço de Venda Final R$ <span class="opcional-badge">(Deixe em branco se for Matéria-Prima)</span>:</label>
-                <!-- O input de venda NÃO tem o "required", sendo totalmente opcional -->
                 <input type="number" id="add-venda" step="0.01" placeholder="Ex: 0.00 ou deixe vazio">
             </div>
 
@@ -254,7 +255,6 @@
         <div class="modal-conteudo">
             <h2 style="margin-top: 0; border-bottom: 2px solid #ddd; padding-bottom: 10px;">Editar Produto</h2>
             <form id="form-editar-produto">
-                <!-- ID Escondido -->
                 <input type="hidden" id="edit-id">
 
                 <div class="grupo-form">
@@ -282,12 +282,8 @@
     </div>
 
     <script>
-        // Array falso (Mock) para simular o banco de dados antes da API estar 100% conectada
-        let bancoEstoque = [
-            { id: 1, codigo_barras: "78912345", nome: "Farinha de Trigo", quantidade: "50 KG", preco_custo: 120.00, preco_venda: 0 },
-            { id: 2, codigo_barras: "001", nome: "Coca-Cola 2L", quantidade: "20 UN", preco_custo: 140.00, preco_venda: 12.00 },
-            { id: 3, codigo_barras: "200001234", nome: "Pão Caseiro", quantidade: "15 UN", preco_custo: 0, preco_venda: 8.50 }
-        ];
+        // Variável global para guardar os itens carregados do banco e facilitar a edição
+        let listaProdutosReal = [];
 
         window.onload = () => {
             carregarTabelaEstoque();
@@ -304,39 +300,52 @@
             if (idAba === 'aba-gerenciar') carregarTabelaEstoque();
         }
 
-        // Carrega os dados na Tabela
+        // 1. CARREGAR OS DADOS REAIS DO BANCO (GET)
         async function carregarTabelaEstoque() {
             const tbody = document.getElementById('tabela-estoque-body');
-            tbody.innerHTML = '';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Carregando estoque real do banco...</td></tr>';
 
-            // Aqui no futuro você usa: const res = await fetch('/api/produtos');
-            // const produtos = await res.json();
-            const produtos = bancoEstoque; // Usando a lista falsa por enquanto
-
-            if (produtos.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Estoque vazio.</td></tr>';
-                return;
-            }
-
-            produtos.forEach(prod => {
-                const vendaTxt = prod.preco_venda > 0 ? `R$ ${parseFloat(prod.preco_venda).toFixed(2)}` : '<span style="color:#7f8c8d;">Matéria-Prima</span>';
+            try {
+                const res = await fetch('/api/produtos');
+                if (!res.ok) throw new Error('Erro ao buscar dados do servidor');
                 
-                const tr = document.createElement('tr');
-                tr.innerHTML = `
-                    <td>${prod.codigo_barras || 'N/A'}</td>
-                    <td><strong>${prod.nome}</strong></td>
-                    <td>${prod.quantidade}</td>
-                    <td>R$ ${parseFloat(prod.preco_custo).toFixed(2)}</td>
-                    <td>${vendaTxt}</td>
-                    <td><button class="btn-editar" onclick="abrirModalEditar(${prod.id})">✏️ Editar</button></td>
-                `;
-                tbody.appendChild(tr);
-            });
+                const produtos = await res.json();
+                listaProdutosReal = produtos; // Salva na memória para o Modal usar depois
+                tbody.innerHTML = '';
+
+                if (produtos.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Estoque vazio. Adicione novos itens!</td></tr>';
+                    return;
+                }
+
+                produtos.forEach(prod => {
+                    const vendaTxt = prod.preco_venda > 0 ? `R$ ${parseFloat(prod.preco_venda).toFixed(2)}` : '<span style="color:#7f8c8d;">Matéria-Prima</span>';
+                    
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${prod.codigo_barras || 'N/A'}</td>
+                        <td><strong>${prod.nome}</strong></td>
+                        <td>${prod.quantidade}</td>
+                        <td>R$ ${(parseFloat(prod.preco_custo) || 0).toFixed(2)}</td>
+                        <td>${vendaTxt}</td>
+                        <td><button class="btn-editar" onclick="abrirModalEditar(${prod.id})">✏️ Editar</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (erro) {
+                console.error(erro);
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:red;">Erro ao conectar com o banco de dados.</td></tr>';
+            }
         }
 
-        // Lógica de Enviar NOVO Produto
-        document.getElementById('form-novo-produto').addEventListener('submit', function(e) {
+        // 2. ENVIAR NOVA COMPRA PARA O BANCO E FINANCEIRO (POST)
+        document.getElementById('form-novo-produto').addEventListener('submit', async function(e) {
             e.preventDefault();
+
+            // Desativa o botão temporariamente para não clicar duas vezes
+            const btnSalvar = this.querySelector('button[type="submit"]');
+            btnSalvar.textContent = "Salvando...";
+            btnSalvar.disabled = true;
 
             const codigo = document.getElementById('add-codigo').value;
             const nome = document.getElementById('add-nome').value;
@@ -344,37 +353,57 @@
             const qtd = document.getElementById('add-qtd').value;
             const custo = parseFloat(document.getElementById('add-custo').value);
             
-            // Pega o valor de venda. Se estiver vazio, salva como 0 (Matéria-prima)
             let vendaRaw = document.getElementById('add-venda').value;
             const venda = vendaRaw ? parseFloat(vendaRaw) : 0;
 
-            const novoProduto = {
-                id: Date.now(), // Gera um ID falso por enquanto
+            const dadosNovaCompra = {
                 codigo_barras: codigo,
                 nome: nome,
-                quantidade: `${qtd} ${unidade}`,
-                preco_custo: custo,
+                unidade: unidade,
+                quantidade: qtd + ' ' + unidade,
+                custo_total: custo,
                 preco_venda: venda
             };
 
-            // Adiciona no "banco falso" (No futuro: fetch('/api/produtos', { method: 'POST'... })
-            bancoEstoque.push(novoProduto);
-
-            alert("Produto adicionado ao estoque com sucesso!");
-            this.reset();
+            try {
+                // Chama a rota /api/compras que alimenta o estoque e registra despesa
+                const res = await fetch('/api/compras', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(dadosNovaCompra)
+                });
+                
+                if (res.ok) {
+                    alert("Compra registrada! O produto entrou no estoque e o valor foi para o Financeiro.");
+                    this.reset();
+                    carregarTabelaEstoque(); // Atualiza a tabela na hora
+                } else {
+                    const resposta = await res.json();
+                    alert("Erro: " + (resposta.erro || "Falha ao salvar no banco."));
+                }
+            } catch (erro) {
+                console.error(erro);
+                alert("Erro de conexão com o servidor!");
+            } finally {
+                btnSalvar.textContent = "📥 Salvar Produto no Estoque";
+                btnSalvar.disabled = false;
+            }
         });
 
         // ==========================================
-        // LÓGICA DO MODAL DE EDIÇÃO
+        // 3. LÓGICA DO MODAL DE EDIÇÃO (PUT)
         // ==========================================
         function abrirModalEditar(id) {
-            const produto = bancoEstoque.find(p => p.id === id);
+            const produto = listaProdutosReal.find(p => p.id === id);
             if(!produto) return;
 
             document.getElementById('edit-id').value = produto.id;
-            document.getElementById('edit-nome').value = produto.nome;
+            document.getElementById('edit-nome').value = produto.nome; 
             document.getElementById('edit-qtd').value = produto.quantidade;
             document.getElementById('edit-venda').value = produto.preco_venda;
+
+            // Bloqueia edição do nome para manter a integridade do código de barras
+            document.getElementById('edit-nome').disabled = true;
 
             document.getElementById('modal-editar').style.display = 'flex';
         }
@@ -383,22 +412,42 @@
             document.getElementById('modal-editar').style.display = 'none';
         }
 
-        document.getElementById('form-editar-produto').addEventListener('submit', function(e) {
+        document.getElementById('form-editar-produto').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const idEdit = parseInt(document.getElementById('edit-id').value);
-            const index = bancoEstoque.findIndex(p => p.id === idEdit);
+            const btnSalvar = this.querySelector('button[type="submit"]');
+            btnSalvar.textContent = "Atualizando...";
+            btnSalvar.disabled = true;
 
-            if(index !== -1) {
-                bancoEstoque[index].nome = document.getElementById('edit-nome').value;
-                bancoEstoque[index].quantidade = document.getElementById('edit-qtd').value;
-                
-                let novaVenda = document.getElementById('edit-venda').value;
-                bancoEstoque[index].preco_venda = novaVenda ? parseFloat(novaVenda) : 0;
+            const idEdit = document.getElementById('edit-id').value;
+            const novaQtd = document.getElementById('edit-qtd').value;
+            let novaVenda = document.getElementById('edit-venda').value;
+            const vendaFinal = novaVenda ? parseFloat(novaVenda) : 0;
 
-                alert("Produto atualizado com sucesso!");
-                fecharModal();
-                carregarTabelaEstoque(); // Recarrega a tabela atualizada
+            try {
+                const res = await fetch(`/api/produtos/${idEdit}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        quantidade: novaQtd,
+                        preco_venda: vendaFinal
+                    })
+                });
+
+                if (res.ok) {
+                    alert("Produto atualizado com sucesso!");
+                    fecharModal();
+                    carregarTabelaEstoque(); 
+                } else {
+                    const resposta = await res.json();
+                    alert("Erro: " + (resposta.erro || "Falha ao atualizar."));
+                }
+            } catch (erro) {
+                console.error(erro);
+                alert("Erro de conexão com o servidor!");
+            } finally {
+                btnSalvar.textContent = "💾 Salvar Alterações";
+                btnSalvar.disabled = false;
             }
         });
     </script>

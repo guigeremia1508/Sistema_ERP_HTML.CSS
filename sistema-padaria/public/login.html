@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login & Ponto - Padaria Pão Brioche</title>
+<script src="modo-demo.js"></script>
+
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background: #2c3e50; display: flex; justify-content: center; align-items: center; min-height: 100vh; position: relative; }
+        
+        .card-login { background: white; padding: 35px 30px; border-radius: 12px; box-shadow: 0 8px 20px rgba(0,0,0,0.25); width: 100%; max-width: 380px; text-align: center; }
+        .card-login h1 { font-size: 1.6rem; color: #2c3e50; margin-bottom: 5px; }
+        .card-login p { color: #7f8c8d; font-size: 0.9rem; margin-bottom: 25px; }
+        .grupo-input { margin-bottom: 18px; text-align: left; }
+        .grupo-input label { display: block; margin-bottom: 6px; font-weight: 600; color: #34495e; font-size: 0.9rem; }
+        .grupo-input input { width: 100%; padding: 12px; border: 1px solid #ccc; border-radius: 6px; font-size: 1rem; outline: none; transition: 0.3s; }
+        .grupo-input input:focus { border-color: #27ae60; box-shadow: 0 0 5px rgba(39, 174, 96, 0.3); }
+        .btn-entrar { background: #27ae60; color: white; border: none; padding: 14px; width: 100%; border-radius: 6px; font-size: 1.05rem; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 10px; }
+        .btn-entrar:hover { background: #219150; }
+
+        /* Botão ⚙️ Flutuante no Canto Superior Direito */
+        .btn-engrenagem-login {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #1abc9c;
+            color: white;
+            border: none;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            font-size: 22px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease-in-out;
+            z-index: 100;
+        }
+
+        .btn-engrenagem-login:hover {
+            background: #16a085;
+            transform: scale(1.1) rotate(30deg);
+        }
+
+        /* Modal de Atalhos */
+        .modal-demo {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+        }
+
+        .modal-conteudo {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 320px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .modal-conteudo h3 {
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .btn-opcao-demo {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            border: none;
+            border-radius: 6px;
+            font-size: 0.95rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+
+        .btn-demo-entrar { background: #e67e22; color: white; }
+        .btn-demo-entrar:hover { background: #d35400; }
+
+        .btn-demo-maquininha { background: #2980b9; color: white; }
+        .btn-demo-maquininha:hover { background: #3498db; }
+
+        .btn-demo-fechar { background: #95a5a6; color: white; margin-top: 10px; }
+        .btn-demo-fechar:hover { background: #7f8c8d; }
+    </style>
+</head>
+<body>
+
+    <!-- Botão de Configurações exclusivo da Tela Inicial -->
+    <button class="btn-engrenagem-login" onclick="abrirModalDemo()" title="Atalhos do Sistema">
+        ⚙️
+    </button>
+
+    <div class="card-login">
+        <h1>🥖 Pão Brioche</h1>
+        <p>Acesse o sistema e registre seu ponto</p>
+
+        <form id="form-login">
+            <div class="grupo-input">
+                <label>Nome de Usuário:</label>
+                <input type="text" id="login-usuario" placeholder="Digite seu nome..." required>
+            </div>
+
+            <div class="grupo-input">
+                <label>Senha:</label>
+                <input type="password" id="login-senha" placeholder="Digite sua senha..." required>
+            </div>
+
+            <button type="submit" class="btn-entrar">⏰ Entrar e Bater Ponto</button>
+        </form>
+    </div>
+
+    <!-- Modal com Opções do Sistema -->
+    <div id="modal-demo" class="modal-demo">
+        <div class="modal-conteudo">
+            <h3>⚙️ Atalhos Rápidos</h3>
+            <button class="btn-opcao-demo btn-demo-entrar" onclick="entrarDiretoModoDemo()">🚀 Entrar Direto (Modo Demo)</button>
+            <button class="btn-opcao-demo btn-demo-maquininha" onclick="abrirMaquininha()">💳 Abrir Maquininha</button>
+            <button class="btn-opcao-demo btn-demo-fechar" onclick="fecharModalDemo()">Fechar</button>
+        </div>
+    </div>
+
+    <script>
+        function abrirModalDemo() {
+            document.getElementById('modal-demo').style.display = 'flex';
+        }
+
+        function fecharModalDemo() {
+            document.getElementById('modal-demo').style.display = 'none';
+        }
+
+        // 🧪 ENTRAR DIRETO NO MODO DEMO
+        async function entrarDiretoModoDemo() {
+            try {
+                // 1. Marca que estamos no MODO DEMO
+                sessionStorage.setItem('modoDemo', 'true');
+
+                // 2. Preenche/Garante os dados simulados exclusivamente no banco_demo.db
+                await fetch('/api/demo/popular', { 
+                    method: 'POST',
+                    headers: { 'x-modo-demo': 'true' }
+                });
+
+                // 3. Define usuário com permissão total para testes
+                sessionStorage.setItem('usuarioLogado', JSON.stringify({
+                    id: 999,
+                    nome: 'Visitante (Modo Demo)',
+                    admin: true,
+                    acessos: ['Caixa', 'Cozinha', 'Gerente', 'Pedidos', 'Repositor']
+                }));
+
+                // 4. Redireciona para o painel principal
+                window.location.href = 'index.html';
+            } catch (erro) {
+                console.error("Erro ao iniciar Modo Demo:", erro);
+                alert("Erro ao carregar dados do Modo Demo. Verifique se o servidor está ativo.");
+            }
+        }
+
+        function abrirMaquininha() {
+            window.location.href = 'maquininha.html';
+        }
+
+        // 🟢 LOGIN VIDA REAL (POR USUÁRIO E SENHA)
+        document.getElementById('form-login').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            // 1. Marca explicitamente que estamos na VIDA REAL
+            sessionStorage.setItem('modoDemo', 'false');
+
+            const usuarioInput = document.getElementById('login-usuario').value.trim();
+            const senhaInput = document.getElementById('login-senha').value.trim();
+
+            // Acesso rápido de Administrador
+            if (usuarioInput.toLowerCase() === 'adm' && senhaInput === 'adm') {
+                sessionStorage.setItem('usuarioLogado', JSON.stringify({
+                    nome: 'Administrador (ADM)',
+                    admin: true,
+                    acessos: ['Caixa', 'Cozinha', 'Gerente', 'Pedidos', 'Repositor']
+                }));
+                
+                alert("Acesso Administrador concedido (Modo Real)!");
+                window.location.href = 'index.html';
+                return;
+            }
+
+            try {
+                // Consulta funcionários NO BANCO REAL
+                const res = await fetch('/api/funcionarios', {
+                    headers: { 'x-modo-demo': 'false' }
+                });
+                if (!res.ok) throw new Error("Erro ao consultar funcionários.");
+                
+                const funcionarios = await res.json();
+                
+                const func = funcionarios.find(f => 
+                    f.nome.toLowerCase() === usuarioInput.toLowerCase() && 
+                    f.senha === senhaInput
+                );
+
+                if (func) {
+                    let cargosArray = [];
+                    if (Array.isArray(func.cargos)) {
+                        cargosArray = func.cargos;
+                    } else if (typeof func.cargo === 'string') {
+                        cargosArray = func.cargo.split(',').map(c => c.trim());
+                    }
+
+                    const agora = new Date();
+
+                    try {
+                        // Registra ponto NO BANCO REAL
+                        await fetch('/api/ponto', {
+                            method: 'POST',
+                            headers: { 
+                                'Content-Type': 'application/json',
+                                'x-modo-demo': 'false'
+                            },
+                            body: JSON.stringify({
+                                funcionario_id: func.id,
+                                nome: func.nome,
+                                entrada: agora.toISOString()
+                            })
+                        });
+                    } catch (errPonto) {
+                        console.warn("Aviso: Ponto salvo localmente.", errPonto);
+                    }
+
+                    sessionStorage.setItem('usuarioLogado', JSON.stringify({
+                        id: func.id,
+                        nome: func.nome,
+                        admin: false,
+                        acessos: cargosArray,
+                        horaEntrada: agora.toISOString()
+                    }));
+
+                    alert(`Olá, ${func.nome}! 👋\n\n✅ Ponto de ENTRADA registrado às ${agora.toLocaleTimeString('pt-BR', {hour: '2-digit', minute:'2-digit'})}.`);
+                    window.location.href = 'index.html';
+
+                } else {
+                    alert("❌ Usuário ou senha incorretos!");
+                }
+
+            } catch (erro) {
+                console.error(erro);
+                alert("Erro ao tentar fazer login. Verifique se o servidor está ativo.");
+            }
+        });
+    </script>
+</body>
+</html>

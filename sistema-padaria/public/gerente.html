@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Painel do Gerente - Padaria</title>
+<script src="modo-demo.js"></script>
+
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
         body { display: flex; height: 100vh; background-color: #f4f6f9; }
@@ -79,7 +81,7 @@
             </div>
         </div>
 
-        <!-- COMPRAS (NOVA SEÇÃO) -->
+        <!-- COMPRAS -->
         <div id="compras" class="secao">
             <h1>🛒 Compras e Entrada de Produtos</h1>
             <div style="background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); max-width: 800px;">
@@ -123,7 +125,7 @@
             </div>
         </div>
 
-        <!-- DESPESAS RECORRENTES (NOVA SEÇÃO) -->
+        <!-- DESPESAS RECORRENTES -->
         <div id="despesas" class="secao">
             <h1>🧾 Despesas Recorrentes (Água, Luz, Internet)</h1>
             <div style="display: flex; gap: 20px; flex-wrap: wrap;">
@@ -240,14 +242,16 @@
                         <input type="text" id="rh-nome" placeholder="Ex: João Silva">
                     </div>
                     
+                    <!-- Seleção Múltipla de Cargos -->
                     <div class="form-grupo">
-                        <label>Cargo:</label>
-                        <select id="rh-cargo">
-                            <option value="Cozinha">Cozinha</option>
-                            <option value="Repositor">Repositor</option>
-                            <option value="Caixa">Caixa</option>
-                            <option value="Gerente">Gerente</option>
-                        </select>
+                        <label>Cargos / Acessos Liberados:</label>
+                        <div style="display: flex; flex-direction: column; gap: 8px; background: #f8f9fa; padding: 12px; border: 1px solid #ccc; border-radius: 4px;">
+                            <label style="font-weight: normal; cursor: pointer;"><input type="checkbox" class="rh-cargo-check" value="Caixa"> 🛒 Caixa</label>
+                            <label style="font-weight: normal; cursor: pointer;"><input type="checkbox" class="rh-cargo-check" value="Cozinha"> 👨‍🍳 Cozinha</label>
+                            <label style="font-weight: normal; cursor: pointer;"><input type="checkbox" class="rh-cargo-check" value="Gerente"> 📊 Gerente</label>
+                            <label style="font-weight: normal; cursor: pointer;"><input type="checkbox" class="rh-cargo-check" value="Pedidos"> 📋 Pedidos</label>
+                            <label style="font-weight: normal; cursor: pointer;"><input type="checkbox" class="rh-cargo-check" value="Repositor"> 📦 Repositor</label>
+                        </div>
                     </div>
                     
                     <div class="form-grupo">
@@ -268,12 +272,21 @@
                     <button class="btn-acao btn-verde" style="width: 100%; margin-top: 10px;" onclick="cadastrarFuncionario()">Salvar Funcionário</button>
                 </div>
 
-                <!-- Tabela de Funcionários -->
+                <!-- Tabela de Funcionários com Coluna Ações -->
                 <div style="flex: 2; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
                     <h3>📋 Quadro de Funcionários Atual</h3>
                     <div style="max-height: 400px; overflow-y: auto;">
                         <table style="margin-top: 10px;">
-                            <thead><tr><th>Nome</th><th>Cargo</th><th>Salário Mensal</th><th>Carga (Dia)</th><th>Status</th></tr></thead>
+                            <thead>
+                                <tr>
+                                    <th>Nome</th>
+                                    <th>Cargo(s)</th>
+                                    <th>Salário Mensal</th>
+                                    <th>Carga (Dia)</th>
+                                    <th>Status</th>
+                                    <th>Ações</th>
+                                </tr>
+                            </thead>
                             <tbody id="tabela-funcionarios"></tbody>
                         </table>
                     </div>
@@ -295,6 +308,11 @@
     </div>
 
     <script>
+        // Carrega o Dashboard automaticamente quando a página abrir
+        window.onload = () => {
+            carregarDashboard();
+        };
+
         function mudarSecao(idSecao) {
             document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativo'));
             document.getElementById(idSecao).classList.add('ativo');
@@ -302,11 +320,36 @@
             document.querySelectorAll('.menu-btn').forEach(b => b.classList.remove('ativo'));
             event.currentTarget.classList.add('ativo');
 
+            if(idSecao === 'dashboard') carregarDashboard();
             if(idSecao === 'estoque') carregarEstoque();
             if(idSecao === 'financeiro') carregarFinanceiro(); 
             if(idSecao === 'caixa') carregarCaixa();
             if(idSecao === 'rh') carregarRH(); 
             if(idSecao === 'despesas') carregarDespesas();
+        }
+
+        // --- DASHBOARD ---
+        async function carregarDashboard() {
+            try {
+                const res = await fetch('/api/vendas');
+                if(!res.ok) return;
+                const vendas = await res.json();
+                
+                const dataHoje = new Date().toLocaleDateString('pt-BR');
+                let faturamentoHoje = 0;
+
+                vendas.forEach(v => {
+                    const dataVenda = new Date(v.data_hora).toLocaleDateString('pt-BR');
+                    if(dataVenda === dataHoje) {
+                        faturamentoHoje += v.total_venda;
+                    }
+                });
+
+                document.getElementById('dash-faturamento').innerText = `R$ ${faturamentoHoje.toFixed(2)}`;
+                document.getElementById('dash-vendas').innerText = vendas.length;
+            } catch (erro) {
+                console.error("Erro ao carregar dashboard:", erro);
+            }
         }
 
         // --- COMPRAS ---
@@ -317,16 +360,14 @@
             const qtd = parseFloat(document.getElementById('compra-qtd').value);
             const custo = parseFloat(document.getElementById('compra-custo').value);
             
-            // Pega o valor da venda. Se estiver vazio, define como 0
             const vendaInput = document.getElementById('compra-venda').value;
             const venda = vendaInput ? parseFloat(vendaInput) : 0;
 
-            // Removida a obrigatoriedade da variável venda
             if (!codigo || !nome || isNaN(qtd) || isNaN(custo)) {
                 return alert("Preencha os campos obrigatórios da compra corretamente!");
             }
 
-            const res = await fetch('http://localhost:3000/api/compras', {
+            const res = await fetch('/api/compras', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ codigo_barras: codigo, nome, unidade, quantidade: qtd, custo_total: custo, preco_venda: venda })
@@ -352,7 +393,7 @@
 
             if(!nome || isNaN(valor) || !vencimento) return alert("Preencha todos os campos da despesa!");
 
-            const res = await fetch('http://localhost:3000/api/despesas', {
+            const res = await fetch('/api/despesas', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ descricao: nome, valor: valor, data_vencimento: vencimento, status: 'Pendente' })
@@ -368,7 +409,7 @@
         }
 
         async function carregarDespesas() {
-            const res = await fetch('http://localhost:3000/api/despesas');
+            const res = await fetch('/api/despesas');
             const despesas = await res.json();
             const tabela = document.getElementById('tabela-despesas');
             tabela.innerHTML = '';
@@ -382,63 +423,147 @@
             });
         }
 
-        // --- ESTOQUE, FINANCEIRO E CAIXA ---
+        // --- ESTOQUE ---
         async function carregarEstoque() {
-            const res = await fetch('http://localhost:3000/api/produtos'); const produtos = await res.json();
-            const tabela = document.getElementById('tabela-estoque'); tabela.innerHTML = '';
+            const res = await fetch('/api/produtos'); 
+            const produtos = await res.json();
+            const tabela = document.getElementById('tabela-estoque'); 
+            tabela.innerHTML = '';
+            
             produtos.forEach(prod => {
-                const classe = parseFloat(prod.quantidade) <= 5 ? 'estoque-baixo' : '';
-                tabela.innerHTML += `<tr class="${classe}"><td>${prod.codigo_barras}</td><td><strong>${prod.nome}</strong></td><td>${prod.quantidade}</td><td>R$ ${prod.preco_custo.toFixed(2)}</td><td>R$ ${prod.preco_venda.toFixed(2)}</td><td><button class="btn-pequeno btn-editar" onclick="editarProduto(${prod.id}, '${prod.nome}', '${prod.quantidade}', ${prod.preco_venda})">✏️ Editar</button><button class="btn-pequeno btn-excluir" onclick="excluirProduto(${prod.id})">🗑️ Excluir</button></td></tr>`;
+                const qtdNumerica = parseFloat(prod.quantidade) || 0;
+                const classe = qtdNumerica <= 5 ? 'estoque-baixo' : '';
+                tabela.innerHTML += `
+                    <tr class="${classe}">
+                        <td>${prod.codigo_barras}</td>
+                        <td><strong>${prod.nome}</strong></td>
+                        <td>${prod.quantidade}</td>
+                        <td>R$ ${(prod.preco_custo || 0).toFixed(2)}</td>
+                        <td>R$ ${(prod.preco_venda || 0).toFixed(2)}</td>
+                        <td>
+                            <button class="btn-pequeno btn-editar" onclick="editarProduto(${prod.id}, '${prod.nome}', '${prod.quantidade}', ${prod.preco_venda})">✏️ Editar</button>
+                            <button class="btn-pequeno btn-excluir" onclick="excluirProduto(${prod.id})">🗑️ Excluir</button>
+                        </td>
+                    </tr>`;
             });
         }
-        async function excluirProduto(id) { if(confirm("Excluir?")) { await fetch(`http://localhost:3000/api/produtos/${id}`, { method: 'DELETE' }); carregarEstoque(); } }
-        async function editarProduto(id, nome, qtd, preco) {
-            const novaQtd = prompt(`Qtd de "${nome}":`, qtd); if(!novaQtd) return;
-            const novoPreco = prompt(`Preço de "${nome}":`, preco.toFixed(2)); if(!novoPreco) return;
-            const v = parseFloat(novoPreco.replace(',','.')); if(isNaN(v)) return;
-            await fetch(`http://localhost:3000/api/produtos/${id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body:JSON.stringify({quantidade:novaQtd, preco_venda:v}) }); carregarEstoque();
+
+        async function excluirProduto(id) { 
+            if(confirm("Deseja realmente excluir este produto?")) { 
+                await fetch(`/api/produtos/${id}`, { method: 'DELETE' }); 
+                carregarEstoque(); 
+            } 
         }
 
+        async function editarProduto(id, nome, qtd, preco) {
+            const novaQtd = prompt(`Nova quantidade de "${nome}":`, qtd); 
+            if(novaQtd === null) return;
+            
+            const precoAjustado = preco ? preco.toFixed(2) : '0.00';
+            const novoPreco = prompt(`Novo Preço de venda de "${nome}":`, precoAjustado); 
+            if(novoPreco === null) return;
+            
+            const valorNumerico = parseFloat(novoPreco.replace(',','.')); 
+            if(isNaN(valorNumerico)) return alert("Preço inválido!");
+            
+            await fetch(`/api/produtos/${id}`, { 
+                method:'PUT', 
+                headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({quantidade: novaQtd, preco_venda: valorNumerico}) 
+            }); 
+            carregarEstoque();
+        }
+
+        // --- FINANCEIRO (DRE) ---
         async function carregarFinanceiro() {
-            const resVendas = await fetch('http://localhost:3000/api/vendas'); const vendas = await resVendas.json();
-            const resDesp = await fetch('http://localhost:3000/api/despesas'); const despesas = await resDesp.json();
-            let ent = 0, sai = 0;
-            const tbVendas = document.getElementById('tabela-vendas-hist'); tbVendas.innerHTML = '';
-            vendas.forEach(v => { ent += v.total_venda; tbVendas.innerHTML += `<tr><td>#00${v.id}</td><td>${new Date(v.data_hora).toLocaleString()}</td><td>${v.forma_pagamento}</td><td style="color: green;">R$ ${v.total_venda.toFixed(2)}</td></tr>`; });
-            despesas.forEach(d => sai += d.valor);
-            document.getElementById('dre-entradas').innerText = `R$ ${ent.toFixed(2)}`;
-            document.getElementById('dre-saidas').innerText = `R$ ${sai.toFixed(2)}`;
-            const saldo = ent - sai;
+            const resVendas = await fetch('/api/vendas'); 
+            const vendas = await resVendas.json();
+            
+            const resDesp = await fetch('/api/despesas'); 
+            const despesas = await resDesp.json();
+            
+            let entradas = 0;
+            let saidas = 0;
+            
+            const tbVendas = document.getElementById('tabela-vendas-hist'); 
+            tbVendas.innerHTML = '';
+            
+            vendas.forEach(v => { 
+                entradas += v.total_venda; 
+                tbVendas.innerHTML += `
+                    <tr>
+                        <td>#00${v.id}</td>
+                        <td>${new Date(v.data_hora).toLocaleString()}</td>
+                        <td>${v.forma_pagamento}</td>
+                        <td style="color: green;">R$ ${v.total_venda.toFixed(2)}</td>
+                    </tr>`; 
+            });
+            
+            despesas.forEach(d => saidas += d.valor);
+            
+            document.getElementById('dre-entradas').innerText = `R$ ${entradas.toFixed(2)}`;
+            document.getElementById('dre-saidas').innerText = `R$ ${saidas.toFixed(2)}`;
+            
+            const saldo = entradas - saidas;
             document.getElementById('dre-saldo').innerText = `R$ ${saldo.toFixed(2)}`;
             document.getElementById('dre-saldo').style.color = saldo < 0 ? '#e74c3c' : '#3498db';
         }
 
+        // --- CAIXA ---
         async function carregarCaixa() {
-            const resVendas = await fetch('http://localhost:3000/api/vendas'); const vendas = await resVendas.json();
-            const resFluxo = await fetch('http://localhost:3000/api/fluxo-caixa'); const fluxo = await resFluxo.json();
+            const resVendas = await fetch('/api/vendas'); 
+            const vendas = await resVendas.json();
+            
+            const resFluxo = await fetch('/api/fluxo-caixa'); 
+            const fluxo = await resFluxo.json();
+            
             let saldoGaveta = 0;
-            vendas.forEach(v => { if (v.forma_pagamento === 'Dinheiro') saldoGaveta += v.total_venda; });
-            const tabelaFluxo = document.getElementById('tabela-fluxo-caixa'); tabelaFluxo.innerHTML = '';
+            
+            vendas.forEach(v => { 
+                if (v.forma_pagamento === 'Dinheiro') saldoGaveta += v.total_venda; 
+            });
+            
+            const tabelaFluxo = document.getElementById('tabela-fluxo-caixa'); 
+            tabelaFluxo.innerHTML = '';
+            
             fluxo.forEach(mov => {
                 if (mov.tipo === 'Suprimento') saldoGaveta += mov.valor;
                 else if (mov.tipo === 'Sangria') saldoGaveta -= mov.valor;
+                
                 let cor = mov.tipo === 'Suprimento' ? '#2ecc71' : '#e74c3c';
                 let ic = mov.tipo === 'Suprimento' ? '📥' : '📤';
-                tabelaFluxo.innerHTML += `<tr><td><strong>${ic} ${mov.tipo}</strong></td><td>${mov.motivo}</td><td>${new Date(mov.data_registro).toLocaleString('pt-BR')}</td><td style="color: ${cor};">R$ ${mov.valor.toFixed(2)}</td></tr>`;
+                
+                tabelaFluxo.innerHTML += `
+                    <tr>
+                        <td><strong>${ic} ${mov.tipo}</strong></td>
+                        <td>${mov.motivo}</td>
+                        <td>${new Date(mov.data_registro).toLocaleString('pt-BR')}</td>
+                        <td style="color: ${cor};">R$ ${mov.valor.toFixed(2)}</td>
+                    </tr>`;
             });
+            
             document.getElementById('caixa-dinheiro-gaveta').innerText = `R$ ${saldoGaveta.toFixed(2)}`;
         }
 
         async function registrarMovimento() {
-            const tipo = document.getElementById('tipo-movimento').value, motivo = document.getElementById('motivo-movimento').value, valor = parseFloat(document.getElementById('valor-movimento').value);
-            if (!motivo || isNaN(valor) || valor <= 0) return alert("Preencha corretamente!");
-            await fetch('http://localhost:3000/api/fluxo-caixa', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tipo, motivo, valor }) });
-            document.getElementById('motivo-movimento').value = ''; document.getElementById('valor-movimento').value = ''; carregarCaixa();
+            const tipo = document.getElementById('tipo-movimento').value;
+            const motivo = document.getElementById('motivo-movimento').value;
+            const valor = parseFloat(document.getElementById('valor-movimento').value);
+            
+            if (!motivo || isNaN(valor) || valor <= 0) return alert("Preencha corretamente o movimento!");
+            
+            await fetch('/api/fluxo-caixa', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ tipo, motivo, valor }) 
+            });
+            
+            document.getElementById('motivo-movimento').value = ''; 
+            document.getElementById('valor-movimento').value = ''; 
+            carregarCaixa();
         }
 
-        // ==========================================
-        // FUNÇÕES DO RH
-        // ==========================================
+        // --- RH ---
         function carregarRH() {
             buscarFuncionarios();
             buscarRelatorioPonto();
@@ -446,25 +571,36 @@
 
         async function cadastrarFuncionario() {
             const nome = document.getElementById('rh-nome').value;
-            const cargo = document.getElementById('rh-cargo').value;
+            
+            const checkboxes = document.querySelectorAll('.rh-cargo-check:checked');
+            const cargos = Array.from(checkboxes).map(cb => cb.value);
+
             const salario_mensal = parseFloat(document.getElementById('rh-salario').value);
             const carga_horaria_diaria = parseFloat(document.getElementById('rh-carga-horaria').value);
             const senha = document.getElementById('rh-senha').value;
 
-            if (!nome || isNaN(salario_mensal) || isNaN(carga_horaria_diaria) || !senha) {
-                alert("Por favor, preencha todos os campos corretamente.");
+            if (!nome || cargos.length === 0 || isNaN(salario_mensal) || isNaN(carga_horaria_diaria) || !senha) {
+                alert("Por favor, preencha todos os campos e selecione ao menos um cargo!");
                 return;
             }
 
-            const res = await fetch('http://localhost:3000/api/funcionarios', {
+            const res = await fetch('/api/funcionarios', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ nome, cargo, salario_mensal, carga_horaria_diaria, senha })
+                body: JSON.stringify({ 
+                    nome, 
+                    cargo: cargos.join(', '), 
+                    cargos: cargos, 
+                    salario_mensal, 
+                    carga_horaria_diaria, 
+                    senha 
+                })
             });
 
             if (res.ok) {
                 alert("Funcionário cadastrado com sucesso!");
                 document.getElementById('rh-nome').value = '';
+                document.querySelectorAll('.rh-cargo-check').forEach(cb => cb.checked = false);
                 document.getElementById('rh-salario').value = '';
                 document.getElementById('rh-carga-horaria').value = '';
                 document.getElementById('rh-senha').value = '';
@@ -475,27 +611,49 @@
         }
 
         async function buscarFuncionarios() {
-            const res = await fetch('http://localhost:3000/api/funcionarios');
+            const res = await fetch('/api/funcionarios');
             const funcionarios = await res.json();
             const tabela = document.getElementById('tabela-funcionarios');
             tabela.innerHTML = '';
 
             funcionarios.forEach(f => {
-                const statusStr = f.ativo ? '<span style="color: green; font-weight:bold;">Ativo</span>' : '<span style="color: red; font-weight:bold;">Inativo</span>';
+                const statusStr = f.ativo !== false ? '<span style="color: green; font-weight:bold;">Ativo</span>' : '<span style="color: red; font-weight:bold;">Inativo</span>';
+                const cargosExibicao = Array.isArray(f.cargos) ? f.cargos.join(', ') : (f.cargo || '---');
+
                 tabela.innerHTML += `
                     <tr>
                         <td><strong>${f.nome}</strong></td>
-                        <td>${f.cargo}</td>
+                        <td>${cargosExibicao}</td>
                         <td style="color: #2c3e50; font-weight: bold;">R$ ${f.salario_mensal.toFixed(2)}</td>
                         <td>${f.carga_horaria_diaria} horas</td>
                         <td>${statusStr}</td>
+                        <td>
+                            <button class="btn-pequeno btn-excluir" onclick="excluirFuncionario(${f.id})">🗑️ Excluir</button>
+                        </td>
                     </tr>
                 `;
             });
         }
 
+        async function excluirFuncionario(id) {
+            if (confirm("Tem certeza que deseja excluir este funcionário? Ele perderá o acesso ao sistema imediatamente.")) {
+                try {
+                    const res = await fetch(`/api/funcionarios/${id}`, { method: 'DELETE' });
+                    if (res.ok) {
+                        alert("Funcionário excluído com sucesso!");
+                        buscarFuncionarios();
+                    } else {
+                        alert("Erro ao excluir o funcionário.");
+                    }
+                } catch (erro) {
+                    console.error("Erro na requisição:", erro);
+                    alert("Erro de conexão com o servidor.");
+                }
+            }
+        }
+
         async function buscarRelatorioPonto() {
-            const res = await fetch('http://localhost:3000/api/ponto');
+            const res = await fetch('/api/ponto');
             const ponto = await res.json();
             const tabela = document.getElementById('tabela-ponto');
             tabela.innerHTML = '';

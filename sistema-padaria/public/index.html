@@ -4,21 +4,52 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistema Padaria Pão Brioche</title>
-    <!-- AQUI ESTÁ O LINK QUE PUXA O CSS! -->
+<script src="modo-demo.js"></script>
+
     <link rel="stylesheet" href="style.css">
     
-    <!-- Um pouquinho de CSS extra só para deixar os botões do menu inicial bem bonitos -->
     <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #f4f6f9; position: relative; min-height: 100vh; }
+
+        /* Barra de Usuário no Topo */
+        .barra-topo {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #2c3e50;
+            color: white;
+            padding: 12px 25px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+        .barra-topo span {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+        .btn-sair {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 6px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .btn-sair:hover {
+            background: #c0392b;
+        }
+
         .menu-inicial {
             display: flex;
             gap: 20px;
             justify-content: center;
             margin-top: 40px;
-            flex-wrap: nowrap; /* Garante que fique tudo na mesma linha */
-            max-width: 1200px; /* Aumentei para caber os 5 itens lado a lado */
+            flex-wrap: nowrap;
+            max-width: 1200px;
             margin-left: auto;
             margin-right: auto;
-            overflow-x: auto; /* Se abrir no celular, permite rolar para o lado sem quebrar */
+            overflow-x: auto;
             padding-bottom: 10px;
         }
         .cartao-modulo {
@@ -29,8 +60,8 @@
             text-align: center;
             text-decoration: none;
             color: #333;
-            width: 200px; /* Diminuí um pouco a largura para caberem melhor */
-            flex: 0 0 auto; /* Mantém o tamanho fixo de cada quadrado */
+            width: 200px;
+            flex: 0 0 auto;
             transition: transform 0.2s, border-color 0.2s;
             border: 2px solid transparent;
         }
@@ -39,7 +70,7 @@
             border-color: #3498db;
         }
         .cartao-modulo h2 {
-            margin: 15px 0 0 0; /* Removida a margem inferior já que não tem mais subtítulo */
+            margin: 15px 0 0 0;
             color: #2c3e50;
             font-size: 1.5rem;
         }
@@ -49,41 +80,125 @@
     </style>
 </head>
 <body>
-    <div class="container-pagina" style="text-align: center; margin-top: 50px;">
+
+    <!-- BARRA SUPERIOR DE LOGOUT E IDENTIFICAÇÃO -->
+    <div class="barra-topo">
+        <span id="nome-usuario-logado">👤 Carregando...</span>
+        <button class="btn-sair" onclick="baterPontoESair()">🚪 Sair / Bater Ponto de Saída</button>
+    </div>
+
+    <div class="container-pagina" style="text-align: center; margin-top: 40px;">
         <h1 style="font-size: 2.5rem; color: #2c3e50;">🥖 Sistema Padaria Pão Brioche 🥖</h1>
         <p style="font-size: 1.2rem; color: #555; margin-top: 10px;">Selecione o módulo que deseja acessar:</p>
 
         <div class="menu-inicial">
             <!-- Link para o Caixa -->
-            <a href="caixa.html" class="cartao-modulo">
+            <a href="caixa.html" id="btn-Caixa" class="cartao-modulo">
                 <div class="icone-grande">🛒</div>
                 <h2>Caixa</h2>
             </a>
 
             <!-- Link para a Cozinha -->
-            <a href="cozinha.html" class="cartao-modulo">
+            <a href="cozinha.html" id="btn-Cozinha" class="cartao-modulo">
                 <div class="icone-grande">👨‍🍳</div>
                 <h2>Cozinha</h2>
             </a>
 
             <!-- Link para o Gerente -->
-            <a href="gerente.html" class="cartao-modulo">
+            <a href="gerente.html" id="btn-Gerente" class="cartao-modulo">
                 <div class="icone-grande">📊</div>
                 <h2>Gerente</h2>
             </a>
 
             <!-- Link para Pedidos -->
-            <a href="pedidos.html" class="cartao-modulo">
+            <a href="pedidos.html" id="btn-Pedidos" class="cartao-modulo">
                 <div class="icone-grande">📋</div>
                 <h2>Pedidos</h2>
             </a>
 
             <!-- Link para Repositor -->
-            <a href="repositor.html" class="cartao-modulo">
+            <a href="repositor.html" id="btn-Repositor" class="cartao-modulo">
                 <div class="icone-grande">🏬</div>
                 <h2>Repositor</h2>
             </a>
         </div>
     </div>
+
+    <script>
+        window.onload = () => {
+            verificarAcesso();
+        };
+
+        function verificarAcesso() {
+            const usuarioStr = sessionStorage.getItem('usuarioLogado');
+            
+            // Se não houver ninguém logado, manda direto para a tela de login
+            if (!usuarioStr) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const usuario = JSON.parse(usuarioStr);
+            document.getElementById('nome-usuario-logado').innerText = `👤 Olá, ${usuario.nome} ${usuario.admin ? '(Administrador)' : ''}`;
+
+            const todosModulos = ['Caixa', 'Cozinha', 'Gerente', 'Pedidos', 'Repositor'];
+
+            todosModulos.forEach(modulo => {
+                const btn = document.getElementById(`btn-${modulo}`);
+                if (btn) {
+                    // Se NÃO for admin E o módulo NÃO estiver nos acessos da pessoa, esconde o botão
+                    if (!usuario.admin && (!usuario.acessos || !usuario.acessos.includes(modulo))) {
+                        btn.style.display = 'none';
+                    } else {
+                        btn.style.display = 'block';
+                    }
+                }
+            });
+        }
+
+        async function baterPontoESair() {
+            const usuarioStr = sessionStorage.getItem('usuarioLogado');
+            if (!usuarioStr) {
+                window.location.href = 'login.html';
+                return;
+            }
+
+            const usuario = JSON.parse(usuarioStr);
+
+            // Se for ADMINISTRADOR ou MODO DEMO, apenas encerra sem gravar ponto
+            if (usuario.admin) {
+                sessionStorage.removeItem('usuarioLogado');
+                alert("Sessão encerrada.");
+                window.location.href = 'login.html';
+                return;
+            }
+
+            // Se for FUNCIONÁRIO, calcula as horas e bate ponto de saída
+            const horaEntrada = new Date(usuario.horaEntrada);
+            const horaSaida = new Date();
+
+            const diffMs = horaSaida - horaEntrada;
+            const horasTrabalhadas = diffMs / (1000 * 60 * 60);
+
+            try {
+                await fetch('/api/ponto', {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        funcionario_id: usuario.id,
+                        saida: horaSaida.toISOString(),
+                        horas_trabalhadas: horasTrabalhadas
+                    })
+                });
+            } catch (erro) {
+                console.warn("Aviso: Ponto salvo localmente.", erro);
+            }
+
+            alert(`✅ Ponto de SAÍDA registrado com sucesso!\n\n⏱️ Total trabalhado neste turno: ${horasTrabalhadas.toFixed(2)} horas.`);
+
+            sessionStorage.removeItem('usuarioLogado');
+            window.location.href = 'login.html';
+        }
+    </script>
 </body>
 </html>

@@ -7,11 +7,11 @@ let cpfAtual = "0";
 // Variável para controlar a comunicação com o Celular (Maquininha)
 let intervalMaquininha = null;
 
-// Variáveis para o Histórico/Extrato do Gerente
+// Variáveis para o Histórico/Extrato do Gerente (Local)
 let totalVendasRealizadas = 0;
 let faturamentoDiario = 0;
 let ultimoMetodoPagamento = ''; 
-let historicoVendas = []; // Guarda a lista de vendas
+let historicoVendas = []; 
 
 window.onload = async () => {
     await carregarProdutosParaVenda();
@@ -20,7 +20,9 @@ window.onload = async () => {
 async function carregarProdutosParaVenda() {
     try {
         const res = await fetch('/api/produtos');
-        produtosPDV = await res.json();
+        if (res.ok) {
+            produtosPDV = await res.json();
+        }
     } catch (error) {
         console.error("Erro ao carregar produtos:", error);
     }
@@ -36,26 +38,30 @@ function voltarAoMenuCaixa() {
     document.getElementById('titulo-header').textContent = '🛒 Frente de Caixa';
 }
 
-function abrirConsulta(tipo) {
+async function abrirConsulta(tipo) {
     document.getElementById('tela-menu').style.display = 'none';
     
     if (tipo === 'estoque') {
         document.getElementById('tela-consulta-estoque').style.display = 'block';
         const tbody = document.getElementById('lista-consulta-estoque');
+        tbody.innerHTML = '<tr><td colspan="4">Carregando...</td></tr>';
+        
+        // Recarrega o estoque atualizado
+        await carregarProdutosParaVenda();
+        
         tbody.innerHTML = '';
+        // Filtra para exibir produtos cadastrados
         produtosPDV.forEach(p => {
             const val = p.data_fabricacao ? p.data_fabricacao.split('-').reverse().join('/') : '-';
-            tbody.innerHTML += `<tr><td>${p.codigo_barras}</td><td>${p.nome}</td><td>${val}</td><td>${p.quantidade}</td></tr>`;
+            tbody.innerHTML += `<tr><td>${p.codigo_barras || p.id}</td><td>${p.nome}</td><td>${val}</td><td>${p.quantidade}</td></tr>`;
         });
     } 
     else if (tipo === 'extrato') {
-        // TELA DE RESUMO
         document.getElementById('tela-consulta-extrato').style.display = 'block';
         document.getElementById('extrato-qtd').textContent = totalVendasRealizadas;
         document.getElementById('extrato-valor').textContent = `R$ ${faturamentoDiario.toFixed(2).replace('.', ',')}`;
     }
     else if (tipo === 'historico') {
-        // TELA DE HISTÓRICO DETALHADO
         document.getElementById('tela-consulta-historico').style.display = 'block';
         const tbody = document.getElementById('lista-consulta-historico');
         tbody.innerHTML = '';
@@ -117,7 +123,6 @@ async function limparVenda() {
     document.getElementById('input-codigo').value = '';
     document.getElementById('cliente-cpf-display').textContent = `CPF: Aguardando...`;
 
-    // Reset da Maquininha no Celular ao cancelar/limpar
     try { await fetch('/api/maquininha/reset', { method: 'POST' }); } catch(e){}
     if (intervalMaquininha) clearInterval(intervalMaquininha);
 }
@@ -155,21 +160,35 @@ function processarProduto(busca) {
             nomeFinal = `${prodBanco.nome} (Pesado)`;
         }
     } else {
-        const prodBanco = produtosPDV.find(p => p.codigo_barras === busca || p.nome.toLowerCase().includes(busca));
+        const prodBanco = produtosPDV.find(p => 
+            (p.codigo_barras && p.codigo_barras.toLowerCase() === busca) || 
+            p.nome.toLowerCase().includes(busca)
+        );
         if (prodBanco) {
             produtoEncontrado = prodBanco;
-            precoFinalItem = prodBanco.preco_venda;
+            precoFinalItem = prodBanco.preco_venda || 0;
             nomeFinal = prodBanco.nome;
         }
     }
 
-    if (produtoEncontrado) adicionarAoCarrinho(nomeFinal, precoFinalItem, contadorItens + 1);
-    else alert("Produto não encontrado!");
+    if (produtoEncontrado) {
+        adicionarAoCarrinho(produtoEncontrado.id, nomeFinal, precoFinalItem, contadorItens + 1);
+    } else {
+        alert("Produto não encontrado!");
+    }
 }
 
-function adicionarAoCarrinho(nome, preco, idUnico) {
+function adicionarAoCarrinho(prodId, nome, preco, idUnico) {
     contadorItens++;
-    const item = { id: idUnico, numero: contadorItens, nome: nome, quantidade: 1, precoUnitario: preco, total: preco };
+    const item = { 
+        id: idUnico, 
+        produtoId: prodId,
+        numero: contadorItens, 
+        nome: nome, 
+        quantidade: 1, 
+        precoUnitario: preco, 
+        total: preco 
+    };
     carrinho.push(item);
     recalcularTotal();
     renderizarCarrinho();
@@ -271,7 +290,6 @@ async function iniciarSimulacaoTEF(mensagem, metodo, valor) {
     document.getElementById('texto-maquininha').textContent = "AGUARDANDO PAGAMENTO NO CELULAR...";
     document.getElementById('texto-maquininha').style.color = "#fff";
 
-    // 1. Avisa o servidor para ligar a maquininha do celular
     try {
         await fetch('/api/maquininha/iniciar', {
             method: 'POST',
@@ -282,23 +300,20 @@ async function iniciarSimulacaoTEF(mensagem, metodo, valor) {
         console.error("Erro ao conectar com a maquininha:", e);
     }
 
-    // 2. Fica checando de 1 em 1 segundo se o cliente tocou na tela do celular
     intervalMaquininha = setInterval(async () => {
         try {
             const res = await fetch('/api/maquininha/status');
             const dados = await res.json();
 
             if (dados.status === 'aprovado') {
-                clearInterval(intervalMaquininha); // Para de checar
+                clearInterval(intervalMaquininha);
                 
                 document.getElementById('texto-maquininha').textContent = "TRANSAÇÃO APROVADA!";
                 document.getElementById('texto-maquininha').style.color = "#2ecc71";
                 
                 setTimeout(async () => {
                     document.getElementById('modal-maquininha').style.display = 'none';
-                    // Libera a maquininha para o próximo cliente
                     await fetch('/api/maquininha/reset', { method: 'POST' });
-                    // Finaliza a venda no sistema
                     finalizarERegistrarVenda(metodo, valor);
                 }, 1500);
             }
@@ -309,17 +324,16 @@ async function iniciarSimulacaoTEF(mensagem, metodo, valor) {
 }
 
 // ---------------------------------------------------
-// FLUXO PÓS-VENDA E REGISTRO NO HISTÓRICO
+// FLUXO PÓS-VENDA E REGISTRO NO BANCO DE DADOS
 // ---------------------------------------------------
-function finalizarERegistrarVenda(metodo, valorCobrado) {
+async function finalizarERegistrarVenda(metodo, valorCobrado) {
     document.getElementById('modal-pagamento').style.display = 'none';
     
-    // Atualiza Total Geral
+    // 1. Atualiza variáveis locais
     totalVendasRealizadas++;
     faturamentoDiario += valorCobrado;
     ultimoMetodoPagamento = metodo; 
     
-    // REGISTRA NA LISTA DE HISTÓRICO
     historicoVendas.push({
         hora: new Date().toLocaleTimeString(),
         cpf: cpfAtual,
@@ -327,7 +341,29 @@ function finalizarERegistrarVenda(metodo, valorCobrado) {
         valor: valorCobrado
     });
 
-    // Mostra o Modal de Decisão de Impressão
+    // 2. ENVIA A VENDA PARA O SERVIDOR (Dar baixa no Estoque e Salvar Finanças)
+    try {
+        const dadosVenda = {
+            cpf_cliente: cpfAtual,
+            metodo_pagamento: metodo,
+            total_venda: valorCobrado,
+            itens: carrinho
+        };
+
+        await fetch('/api/vendas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dadosVenda)
+        });
+
+        // Recarrega o estoque atualizado
+        await carregarProdutosParaVenda();
+
+    } catch (error) {
+        console.error("Erro ao comunicar venda com o banco de dados:", error);
+    }
+
+    // 3. Exibe a tela de decisão de Impressão
     document.getElementById('modal-pos-venda').style.display = 'flex';
 }
 

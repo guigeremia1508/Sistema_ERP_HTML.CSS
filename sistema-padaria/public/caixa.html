@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Caixa PDV - Pão Brioche</title>
+    
+    <script src="modo-demo.js"></script>
     <link rel="stylesheet" href="style.css">
     <style>
         /* Layout Base do PDV */
@@ -143,10 +145,8 @@
             </div>
         </div>
 
-        <!-- ÁREA DE IMPRESSÃO (Oculta na tela, aparece no papel) -->
-        <div id="area-impressao" style="display: none;">
-            <!-- O cupom será montado aqui via JS -->
-        </div>
+        <!-- ÁREA DE IMPRESSÃO -->
+        <div id="area-impressao" style="display: none;"></div>
 
     </div>
 
@@ -193,7 +193,7 @@
         </div>
     </div>
 
-    <!-- MODAL: SIMULAÇÃO MAQUININHA TEF/PIX -->
+    <!-- MODAL: SIMULAÇÃO MAQUININHA -->
     <div id="modal-maquininha" class="modal-overlay">
         <div class="tela-maquininha">
             <h2 id="texto-maquininha">APROXIME OU INSIRA O CARTÃO...</h2>

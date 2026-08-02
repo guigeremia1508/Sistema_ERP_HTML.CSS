@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Padaria Pão Brioche - Cozinha</title>
+<script src="modo-demo.js"></script>
+
     <link rel="stylesheet" href="style.css">
     <!-- Biblioteca para transformar números em linhas de Código de Barras -->
     <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
@@ -114,6 +116,30 @@
                             <input type="date" id="prod-val" required>
                         </div>
                     </div>
+
+                    <!-- ----------------------------------------------------------- -->
+                    <!-- PAINEL DE RESUMO FINANCEIRO (INSERIDO AQUI) -->
+                    <!-- ----------------------------------------------------------- -->
+                    <div style="background: #e8f8f5; border: 1px solid #1abc9c; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                        <h3 style="margin-top: 0; color: #16a085;">📊 Resumo Financeiro da Fornada</h3>
+                        
+                        <div style="display: flex; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <p style="margin: 5px 0; color: #555;">Custo Total da Receita:</p>
+                                <h4 id="resumo-custo-total" style="margin: 0; color: #e74c3c;">R$ 0,00</h4>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #555;">Custo por Unidade (Rendimento):</p>
+                                <h4 id="resumo-custo-unidade" style="margin: 0; color: #f39c12;">R$ 0,00</h4>
+                            </div>
+                            <div>
+                                <p style="margin: 5px 0; color: #555;">Lucro Bruto Estimado:</p>
+                                <h4 id="resumo-lucro" style="margin: 0; color: #2ecc71;">R$ 0,00</h4>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- ----------------------------------------------------------- -->
+
                     <button type="submit" class="btn-acao btn-sucesso">Finalizar Produção e Salvar no Estoque</button>
                 </form>
             </section>
@@ -199,5 +225,57 @@
         </main>
     </div>
     <script src="script.js"></script>
+
+    <!-- SCRIPT DE CÁLCULO FINANCEIRO AUTOMÁTICO -->
+    <script>
+        // Escuta qualquer digitação dentro do formulário de produção para rodar o cálculo
+        document.getElementById('form-producao').addEventListener('input', calcularResumoFinanceiro);
+        document.getElementById('form-producao').addEventListener('change', calcularResumoFinanceiro);
+
+        function calcularResumoFinanceiro() {
+            let custoTotalReceita = 0;
+
+            // Busca os selects e inputs dentro da div de ingredientes manuais
+            const conteinerIngredientes = document.getElementById('lista-ingredientes-producao');
+            const selects = conteinerIngredientes.querySelectorAll('select');
+            const inputsQtd = conteinerIngredientes.querySelectorAll('input[type="number"]');
+
+            for (let i = 0; i < selects.length; i++) {
+                const select = selects[i];
+                const inputQtd = inputsQtd[i];
+
+                if (select.value && inputQtd.value) {
+                    /* 
+                       ATENÇÃO: Aqui estou fixando o custo unitário em R$ 2.50 apenas para 
+                       demonstração matemática. 
+                       Você precisará integrar com o seu `script.js` para puxar o 
+                       preço real do banco de dados (ex: buscando o ID selecionado 
+                       na sua variável global de produtos do estoque).
+                    */
+                    const custoUnitarioInsumo = 2.50; // <--- Substitua isso pela busca real no seu banco
+                    const qtdUsada = parseFloat(inputQtd.value);
+                    
+                    custoTotalReceita += (custoUnitarioInsumo * qtdUsada);
+                }
+            }
+
+            // Pega rendimento e preço de venda
+            const qtdRendida = parseFloat(document.getElementById('prod-qtd').value) || 1;
+            const precoVenda = parseFloat(document.getElementById('prod-venda').value) || 0;
+
+            // Cálculos
+            const custoPorUnidade = custoTotalReceita / qtdRendida;
+            const faturamentoTotal = precoVenda * qtdRendida;
+            const lucroTotal = faturamentoTotal - custoTotalReceita;
+
+            // Atualiza a tela
+            document.getElementById('resumo-custo-total').innerText = `R$ ${custoTotalReceita.toFixed(2)}`;
+            document.getElementById('resumo-custo-unidade').innerText = `R$ ${custoPorUnidade.toFixed(2)}`;
+            
+            const elLucro = document.getElementById('resumo-lucro');
+            elLucro.innerText = `R$ ${lucroTotal.toFixed(2)}`;
+            elLucro.style.color = lucroTotal >= 0 ? '#2ecc71' : '#e74c3c';
+        }
+    </script>
 </body>
 </html>

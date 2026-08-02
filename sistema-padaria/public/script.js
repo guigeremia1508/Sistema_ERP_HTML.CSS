@@ -1,17 +1,72 @@
+// =========================================================
+// 🪄 INTERCEPTADOR GLOBAL DO MODO DEMO vs MODO REAL
+// =========================================================
+const nativeFetch = window.fetch;
+window.fetch = async function (...args) {
+    let [resource, config] = args;
+    config = config || {};
+    config.headers = config.headers || {};
+
+    // Se não houver definição, ativa o Modo Demo por padrão para testes
+    if (sessionStorage.getItem('modoDemo') === null) {
+        sessionStorage.setItem('modoDemo', 'true');
+    }
+
+    const modoDemo = sessionStorage.getItem('modoDemo') === 'true' || 
+                     localStorage.getItem('modoDemo') === 'true';
+
+    // Injeta o cabeçalho x-modo-demo em TODAS as chamadas para o servidor
+    if (config.headers instanceof Headers) {
+        config.headers.append('x-modo-demo', modoDemo ? 'true' : 'false');
+    } else {
+        config.headers['x-modo-demo'] = modoDemo ? 'true' : 'false';
+    }
+
+    // Adiciona o parâmetro ?demo=true na URL como garantia extra
+    if (modoDemo && typeof resource === 'string' && !resource.includes('demo=true')) {
+        const separador = resource.includes('?') ? '&' : '?';
+        resource = resource + separador + 'demo=true';
+    }
+
+    return nativeFetch(resource, config);
+};
+
+// Função para exibir uma barra amarela avisando quando estiver no Modo Demo
+function exibirAvisoModoDemo() {
+    const modoDemo = sessionStorage.getItem('modoDemo') === 'true';
+    if (modoDemo && !document.getElementById('banner-demo-aviso')) {
+        const banner = document.createElement('div');
+        banner.id = 'banner-demo-aviso';
+        banner.innerHTML = '🧪 <strong>MODO DEMO ATIVO</strong> — Você está visualizando dados de teste (sem afetar o banco real).';
+        banner.style.cssText = 'background: #e67e22; color: white; text-align: center; padding: 8px; font-weight: bold; position: sticky; top: 0; z-index: 9999; font-size: 0.9rem; box-shadow: 0 2px 5px rgba(0,0,0,0.2);';
+        document.body.prepend(banner);
+    }
+}
+
+// =========================================================
+// INICIALIZAÇÃO
+// =========================================================
 let insumosNoBanco = [];
 let produtosNoBanco = [];
 
 window.onload = async () => {
+    exibirAvisoModoDemo();
     await carregarListaInsumosGlobal();
 };
 
 async function carregarListaInsumosGlobal() {
     try {
-        const res = await fetch('/api/produtos'); // Puxa do estoque geral de produtos
-        const todosProdutos = await res.json();
-        
-        // FILTRO MÁGICO: Guarda na lista de insumos apenas os produtos com preço de venda = 0
-        insumosNoBanco = todosProdutos.filter(p => p.preco_venda === 0);
+        const resInsumos = await fetch('/api/insumos');
+        let insumos = await resInsumos.json();
+
+        // Se a rota de insumos não tiver nada, tenta puxar de produtos com preco_venda = 0
+        if (!insumos || insumos.length === 0) {
+            const resProd = await fetch('/api/produtos');
+            const todosProdutos = await resProd.json();
+            insumos = todosProdutos.filter(p => p.preco_venda === 0);
+        }
+
+        insumosNoBanco = insumos;
     } catch (error) {
         console.error("Erro ao carregar insumos:", error);
     }
@@ -41,39 +96,36 @@ function abrirAba(evento, idAba) {
 }
 
 // -----------------------------------------------------------
-// ESTOQUE MATÉRIA-PRIMA (AGORA BUSCANDO DO ESTOQUE GERAL)
+// ESTOQUE MATÉRIA-PRIMA
 // -----------------------------------------------------------
 async function carregarEstoqueInsumos() {
     const tbody = document.getElementById('tabela-insumos-body');
+    if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="3" class="texto-vazio">Carregando estoque...</td></tr>';
     
     try {
-        // Agora busca da API de produtos, não da antiga api/insumos
-        const res = await fetch('/api/produtos'); 
-        
-        if (!res.ok) {
-            throw new Error(`Erro de HTTP: ${res.status}`);
+        const resInsumos = await fetch('/api/insumos');
+        let materiasPrimas = await resInsumos.json();
+
+        if (!materiasPrimas || materiasPrimas.length === 0) {
+            const resProd = await fetch('/api/produtos');
+            const todosProdutos = await resProd.json();
+            materiasPrimas = todosProdutos.filter(p => p.preco_venda === 0);
         }
 
-        const todosProdutos = await res.json();
-        
-        // Filtra apenas as matérias-primas (preço_venda = 0)
-        const materiasPrimas = todosProdutos.filter(p => p.preco_venda === 0);
-
-        if (materiasPrimas.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="3" class="texto-vazio">Nenhuma matéria-prima (custo venda = 0) encontrada no estoque.</td></tr>';
+        if (!materiasPrimas || materiasPrimas.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="texto-vazio">Nenhuma matéria-prima encontrada no estoque.</td></tr>';
             return;
         }
 
         tbody.innerHTML = '';
         materiasPrimas.forEach(item => {
             const tr = document.createElement('tr');
-            // Como a tabela de produtos mudou as colunas, adaptamos a visualização
-            // Assumimos que o custo_total está no preco_custo
+            const custo = item.custo_total !== undefined ? item.custo_total : item.preco_custo;
             tr.innerHTML = `
                 <td><strong>${item.nome}</strong></td>
-                <td>${item.quantidade}</td>
-                <td>R$ ${item.preco_custo.toFixed(2)}</td>
+                <td>${item.quantidade} ${item.unidade || ''}</td>
+                <td>R$ ${parseFloat(custo || 0).toFixed(2)}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -91,7 +143,6 @@ function adicionarLinhaIngrediente(idContainer) {
     const selectsAntigos = container.querySelectorAll('.select-ingrediente');
     const nomesJaSelecionados = Array.from(selectsAntigos).map(select => select.value);
 
-    // Usa a lista filtrada insumosNoBanco
     const ingredientesDisponiveis = insumosNoBanco.filter(insumo => !nomesJaSelecionados.includes(insumo.nome));
     if (ingredientesDisponiveis.length === 0) {
         alert("Você já adicionou todos os ingredientes disponíveis no seu estoque!");
@@ -100,10 +151,7 @@ function adicionarLinhaIngrediente(idContainer) {
 
     let optionsHTML = '<option value="">Selecione o ingrediente...</option>';
     ingredientesDisponiveis.forEach(ins => {
-        // Como o item vem de 'produtos', a unidade está junto com a quantidade. 
-        // Para simplificar, vou deixar a unidade como um traço genérico no data-attribute 
-        // ou você pode extrair da string quantidade se precisar.
-        optionsHTML += `<option value="${ins.nome}" data-unidade="Unid.">${ins.nome}</option>`;
+        optionsHTML += `<option value="${ins.nome}" data-unidade="${ins.unidade || 'Unid.'}">${ins.nome}</option>`;
     });
 
     const div = document.createElement('div');
@@ -181,6 +229,7 @@ function trocarModoProducao() {
 
 async function carregarReceitasNoSelect() {
     const select = document.getElementById('select-receita-pronta');
+    if (!select) return;
     select.innerHTML = '<option value="">Carregando receitas...</option>';
     try {
         const res = await fetch('/api/receitas');
@@ -203,9 +252,7 @@ if (formProducao) {
     formProducao.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        // Gera um ID aleatório de 4 dígitos para o produto
         const idCurto = Math.floor(1000 + Math.random() * 9000).toString();
-        // Gera código de barras padrão no formato 20000XXXX (Padrão balança)
         const codigoGerado = `20000${idCurto}`;
         
         const qtdNumero = document.getElementById('prod-qtd').value;
@@ -233,29 +280,26 @@ if (formProducao) {
 
         if (res.ok) {
             formProducao.reset();
-            document.getElementById('lista-ingredientes-producao').innerHTML = '';
+            const containerIng = document.getElementById('lista-ingredientes-producao');
+            if (containerIng) containerIng.innerHTML = '';
         }
     });
 }
 
 async function carregarEstoquePronto() {
     const tbody = document.getElementById('tabela-estoque-pronto-body');
+    if (!tbody) return;
     tbody.innerHTML = '<tr><td colspan="5" class="texto-vazio">Carregando estoque pronto...</td></tr>';
     
     try {
         const res = await fetch('/api/produtos');
         const todosProdutos = await res.json();
         
-        // NOVO FILTRO: Só mostra no estoque pronto os produtos que têm preço de venda maior que zero
-        // E que possuem o código de barras começando com '20000' (fabricação própria)
-        const produtosProntos = todosProdutos.filter(p => 
-            p.preco_venda > 0 && 
-            p.codigo_barras && 
-            p.codigo_barras.startsWith('20000')
-        );
+        // Exibe todos os produtos destinados à venda (preco_venda > 0)
+        const produtosProntos = todosProdutos.filter(p => p.preco_venda > 0);
 
         if (produtosProntos.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" class="texto-vazio">Nenhum produto de fabricação própria no estoque. Produza algo primeiro!</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="texto-vazio">Nenhum produto no estoque pronto.</td></tr>';
             return;
         }
 
@@ -265,10 +309,10 @@ async function carregarEstoquePronto() {
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td><strong>${item.nome}</strong></td>
-                <td>${item.codigo_barras}</td>
+                <td>${item.codigo_barras || 'N/A'}</td>
                 <td>${item.quantidade}</td>
                 <td>${validade}</td>
-                <td>R$ ${item.preco_venda.toFixed(2)}</td>
+                <td>R$ ${parseFloat(item.preco_venda).toFixed(2)}</td>
             `;
             tbody.appendChild(tr);
         });
@@ -283,21 +327,17 @@ async function carregarEstoquePronto() {
 
 async function carregarProdutosPesagem() {
     const select = document.getElementById('pesagem-produto');
+    if (!select) return;
     select.innerHTML = '<option value="">Carregando produtos...</option>';
     
     try {
         const res = await fetch('/api/produtos');
         const todosProdutos = await res.json();
         
-        // NOVO FILTRO: Só permite pesar produtos de fabricação própria (código começa com 20000)
-        produtosNoBanco = todosProdutos.filter(p => 
-            p.preco_venda > 0 && 
-            p.codigo_barras && 
-            p.codigo_barras.startsWith('20000')
-        );
+        produtosNoBanco = todosProdutos.filter(p => p.preco_venda > 0);
         
         if (produtosNoBanco.length === 0) {
-            select.innerHTML = '<option value="">Nenhum produto de fabricação própria no Estoque Pronto</option>';
+            select.innerHTML = '<option value="">Nenhum produto no Estoque Pronto</option>';
             return;
         }
 
@@ -310,14 +350,12 @@ async function carregarProdutosPesagem() {
     }
 }
 
-// Quando o usuário seleciona um produto, ajusta a unidade automaticamente (KG ou UN)
 function atualizarUnidadePesagem() {
     const select = document.getElementById('pesagem-produto');
     const idProduto = select.value;
     const produto = produtosNoBanco.find(p => p.id == idProduto);
 
     if (produto) {
-        // Se no nome da quantidade contiver "KG" ou "G", seleciona KG. Senão UN.
         const selectMedida = document.getElementById('pesagem-medida');
         if (produto.quantidade.includes('KG') || produto.quantidade.includes('G')) {
             selectMedida.value = 'KG';
@@ -328,7 +366,6 @@ function atualizarUnidadePesagem() {
     }
 }
 
-// Calcula o valor conforme você digita
 function atualizarCalculoPesagem() {
     const select = document.getElementById('pesagem-produto');
     const idProduto = select.value;
@@ -344,7 +381,6 @@ function atualizarCalculoPesagem() {
     let totalCalculado = 0;
 
     if (unidadeEscolhida === 'G') {
-        // Se digitou em gramas, divide por 1000 para achar em quilos
         totalCalculado = (qtdInput / 1000) * produto.preco_venda;
     } else {
         totalCalculado = qtdInput * produto.preco_venda;
@@ -355,7 +391,6 @@ function atualizarCalculoPesagem() {
 
 document.getElementById('pesagem-qtd')?.addEventListener('input', atualizarCalculoPesagem);
 
-// Função que cria a etiqueta e desenha o Código de Barras Real!
 function gerarEtiqueta() {
     const select = document.getElementById('pesagem-produto');
     const idProduto = select.value;
@@ -372,39 +407,28 @@ function gerarEtiqueta() {
     if (unidade === 'G') totalVal = (qtdInput / 1000) * produto.preco_venda;
     else totalVal = qtdInput * produto.preco_venda;
 
-    // -------------------------------------------------------------
-    // LÓGICA DO CÓDIGO DE BARRAS DE BALANÇA (PADRÃO NACIONAL EAN-13)
-    // Começa com '2', depois 4 dígitos do ID, depois 5 dígitos do valor total em centavos!
-    // Exemplo: Produto ID 1021 que deu R$ 12,50 -> 2 1021 01250 (12 dígitos + 1 digito verificador = 13)
-    // -------------------------------------------------------------
     const idFormatado = String(produto.id).padStart(4, '0');
     const valorCentavos = String(Math.round(totalVal * 100)).padStart(5, '0');
-    
-    // Código final com 12 dígitos (O JsBarcode vai calcular o 13º automaticamente)
     const codigoEAN13 = `2${idFormatado}${valorCentavos}`;
 
-    // Preenche o texto da etiqueta na tela
     document.getElementById('etq-nome-prod').textContent = produto.nome.toUpperCase();
     document.getElementById('etq-qtd').textContent = `${qtdInput} ${unidade}`;
     document.getElementById('etq-unit').textContent = `R$ ${produto.preco_venda.toFixed(2)}`;
     document.getElementById('etq-total').textContent = totalVal.toFixed(2);
     document.getElementById('etq-val').textContent = produto.data_validade ? produto.data_validade.split('-').reverse().join('/') : '--/--/----';
 
-    // DESENHA O CÓDIGO DE BARRAS REAL USANDO A BIBLIOTECA JsBarcode
     JsBarcode("#codigo-barras-svg", codigoEAN13, {
         format: "EAN13",
         lineColor: "#000",
         width: 1.8,
         height: 45,
-        displayValue: true, // Mostra os números em baixo das barrinhas
+        displayValue: true,
         fontSize: 12
     });
 
-    // Exibe o painel de pré-visualização
     document.getElementById('container-etiqueta').style.display = 'block';
 }
 
-// FUNÇÃO REUTILIZÁVEL DE IMPRESSÃO TÉRMICA 58MM
 function imprimirEtiqueta58mm() {
-    window.print(); // O CSS @media print faz a mágica de imprimir só os 58mm!
+    window.print();
 }
