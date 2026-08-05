@@ -2,6 +2,9 @@
 title SERVIDOR DE IMPRESSAO - PADARIA PB
 color 0A
 
+:: Garante que o terminal rode exatamente na pasta onde o arquivo .bat esta guardado
+cd /d "%~dp0"
+
 echo ===================================================
 echo   CONFIGURANDO E INICIANDO SERVIDOR DE IMPRESSAO
 echo ===================================================
@@ -18,7 +21,7 @@ echo   DEIXE ESTA JANELA ABERTA ENQUANTO USAR O SITE
 echo ===================================================
 echo.
 
-:: Executa o servidor que voce gerou
+:: Executa o servidor compilado na mesma pasta
 servidor.exe
 
 pause
