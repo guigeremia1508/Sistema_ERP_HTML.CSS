@@ -423,33 +423,40 @@ function acaoVoltarMenu() {
     voltarAoMenuCaixa();
 }
 
-function prepararEImprimirCupom(metodo) {
-    const area = document.getElementById('area-impressao');
-    area.innerHTML = `
-        <div style="font-family: monospace; width: 58mm; padding: 2mm; margin: 0 auto; color: black; background: white;">
-            <h3 style="text-align: center; margin: 0 0 5px 0;">PADARIA PÃO BRIOCHE</h3>
-            <p style="text-align: center; font-size: 0.7rem; margin: 0 0 10px 0;">Recibo Não-Fiscal</p>
-            <p style="font-size: 0.7rem;">CPF Consumidor: ${cpfAtual}</p>
-            <p style="font-size: 0.7rem; border-bottom: 1px dashed #000; padding-bottom: 5px;">Data: ${new Date().toLocaleString()}</p>
-            
-            <table style="width: 100%; font-size: 0.7rem; margin-top: 5px;">
-                ${carrinho.map(i => `<tr><td>${i.quantidade}x</td><td>${i.nome.substring(0, 12)}</td><td style="text-align: right;">${i.total.toFixed(2)}</td></tr>`).join('')}
-            </table>
-            
-            <p style="text-align: right; font-weight: bold; font-size: 0.9rem; margin-top: 10px; border-top: 1px dashed #000; padding-top: 5px;">TOTAL: R$ ${totalVenda.toFixed(2)}</p>
-            <p style="text-align: right; font-size: 0.7rem;">Pgto: ${metodo.toUpperCase()}</p>
-            <p style="text-align: center; font-size: 0.7rem; margin-top: 15px;">Volte Sempre!</p>
-        </div>
-    `;
+async function prepararEImprimirCupom(metodo) {
+    // 1. Organiza os dados exatamente como o nosso Servidor Local espera receber
+    const dadosImpressao = {
+        cliente: cpfAtual,
+        pagamento: metodo.toUpperCase(),
+        total: totalVenda,
+        itens: carrinho.map(item => ({
+            nome: item.nome,
+            qtd: item.quantidade,
+            valor: item.precoUnitario 
+        }))
+    };
 
-    document.body.childNodes.forEach(node => { if (node.style) node.style.display = 'none'; });
-    area.style.display = 'block';
-    
-    window.print();
+    try {
+        // 2. Tenta enviar para o programinha local que está rodando na porta 5000 do Computador do Caixa
+        const resposta = await fetch('http://localhost:5000/imprimir', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(dadosImpressao)
+        });
 
-    area.style.display = 'none';
-    document.body.childNodes.forEach(node => { if (node.style) node.style.display = ''; });
-    
+        if (!resposta.ok) {
+            console.error("Erro retornado pela impressora.");
+            alert("Aviso: A venda foi registrada, mas houve um erro ao imprimir o cupom.");
+        }
+    } catch (error) {
+        // 3. Se der erro (ex: a tela preta estiver fechada), avisa o usuário sem travar o sistema
+        console.error("Erro de conexão com a impressora térmica:", error);
+        alert("Aviso: Impressora não encontrada! Verifique se a tela preta 'Servidor-Impressao' está aberta no PC Principal.");
+    }
+
+    // 4. Segue o fluxo normal do seu sistema mostrando a tela para iniciar nova venda
     document.getElementById('modal-nova-ou-voltar').style.display = 'flex';
 }
 
